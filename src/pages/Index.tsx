@@ -5,6 +5,7 @@ import { Bio } from "@/components/Bio";
 import { Process } from "@/components/Process";
 import { B2BSection } from "@/components/B2BSection";
 import { BooksSection } from "@/components/BooksSection";
+import { TrainHardSlogan } from "@/components/TrainHardSlogan";
 import { FAQ } from "@/components/FAQ";
 import { ContactForm } from "@/components/ContactForm";
 import { CookieBanner } from "@/components/CookieBanner";
@@ -31,6 +32,7 @@ const Index = () => {
       <div id="books">
         <BooksSection />
       </div>
+      <TrainHardSlogan />
       <FeaturedIn />
       <div id="about">
         <Bio />
