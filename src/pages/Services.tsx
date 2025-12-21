@@ -115,29 +115,35 @@ export default function Services() {
           {t('services.description')}
         </p>
 
-        {/* Free Consultation - Keep as static */}
-        <div className="max-w-2xl mx-auto mb-12 sm:mb-16 md:mb-20 px-2 sm:px-4">
-          <Card className="relative p-4 sm:p-6 md:p-8 bg-gradient-to-br from-card to-secondary border-[3px] border-primary shadow-[0_0_40px_rgba(212,255,0,0.4)] hover:shadow-[0_0_60px_rgba(212,255,0,0.6)] transition-all duration-300">
-            <Badge className="absolute -top-3 left-4 sm:left-6 md:left-8 bg-primary text-primary-foreground text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1 font-bold">
-              {t('services.freeBadge')}
-            </Badge>
-            <div className="space-y-3 sm:space-y-4 md:space-y-6">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{t('services.freeTitle')}</h2>
-              <p className="text-muted-foreground text-sm sm:text-base md:text-lg">{t('services.freeDesc')}</p>
-              <div className="space-y-1 sm:space-y-2">
-                <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary drop-shadow-[0_0_15px_rgba(212,255,0,0.5)]">
-                  0 Ft
-                </p>
-              </div>
-              <Button
-                onClick={handleFreeConsultation}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 font-bold uppercase text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 transition-transform"
-              >
-                {t('services.bookNow')}
-              </Button>
+        {/* Free Consultation - Get from Kiemelt category */}
+        {(() => {
+          const featuredService = services.find(s => s.category === "Kiemelt");
+          if (!featuredService) return null;
+          return (
+            <div className="max-w-2xl mx-auto mb-12 sm:mb-16 md:mb-20 px-2 sm:px-4">
+              <Card className="relative p-4 sm:p-6 md:p-8 bg-gradient-to-br from-card to-secondary border-[3px] border-primary shadow-[0_0_40px_rgba(212,255,0,0.4)] hover:shadow-[0_0_60px_rgba(212,255,0,0.6)] transition-all duration-300">
+                <Badge className="absolute -top-3 left-4 sm:left-6 md:left-8 bg-primary text-primary-foreground text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1 font-bold">
+                  {featuredService.price === 0 ? t('services.freeBadge') : 'KIEMELT'}
+                </Badge>
+                <div className="space-y-3 sm:space-y-4 md:space-y-6">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">{featuredService.name}</h2>
+                  <p className="text-muted-foreground text-sm sm:text-base md:text-lg">{featuredService.description}</p>
+                  <div className="space-y-1 sm:space-y-2">
+                    <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary drop-shadow-[0_0_15px_rgba(212,255,0,0.5)]">
+                      {featuredService.price === 0 ? '0 Ft' : `${featuredService.price.toLocaleString()} Ft`}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => handleSelectService(featuredService.slug)}
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 font-bold uppercase text-sm sm:text-base md:text-lg py-4 sm:py-5 md:py-6 transition-transform"
+                  >
+                    {t('services.bookNow')}
+                  </Button>
+                </div>
+              </Card>
             </div>
-          </Card>
-        </div>
+          );
+        })()}
 
         {loading ? (
           <div className="text-center py-8 sm:py-12">
