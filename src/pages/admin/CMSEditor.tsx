@@ -87,6 +87,9 @@ const CONTENT_SECTIONS: { page: string; sections: ContentSection[] }[] = [
     sections: [
       { key: "books_title", label: "Szekció cím", type: "text" },
       { key: "books_subtitle", label: "Alcím", type: "text" },
+      { key: "books_subtitle_hu", label: "Alcím (HU)", type: "text" },
+      { key: "books_subtitle_en", label: "Alcím (EN)", type: "text" },
+      { key: "books_subtitle_es", label: "Alcím (ES)", type: "text" },
     ],
   },
   {
