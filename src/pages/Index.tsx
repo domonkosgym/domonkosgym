@@ -28,15 +28,15 @@ const Index = () => {
         onBookConsultation={handleBookConsultation}
         onViewPricing={handleViewPricing}
       />
+      <div id="books">
+        <BooksSection />
+      </div>
       <FeaturedIn />
       <div id="about">
         <Bio />
       </div>
       <Process />
       <B2BSection />
-      <div id="books">
-        <BooksSection />
-      </div>
       <FAQ />
       <ContactForm />
       <Footer />
