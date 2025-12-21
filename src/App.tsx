@@ -25,6 +25,9 @@ import CompanyInfo from "./pages/admin/CompanyInfo";
 import Invoices from "./pages/admin/Invoices";
 import EmailManagement from "./pages/admin/EmailManagement";
 import SzamlazzSettings from "./pages/admin/SzamlazzSettings";
+import ProductsAdmin from "./pages/admin/ProductsAdmin";
+import OrdersAdmin from "./pages/admin/OrdersAdmin";
+import ShippingAdmin from "./pages/admin/ShippingAdmin";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TrackingWrapper } from "./components/TrackingWrapper";
@@ -61,6 +64,9 @@ const App = () => (
               <Route path="company" element={<CompanyInfo />} />
               <Route path="email" element={<EmailManagement />} />
               <Route path="szamlazz" element={<SzamlazzSettings />} />
+              <Route path="products" element={<ProductsAdmin />} />
+              <Route path="orders" element={<OrdersAdmin />} />
+              <Route path="shipping" element={<ShippingAdmin />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
