@@ -1,4 +1,4 @@
-import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings } from "lucide-react";
+import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -23,6 +23,21 @@ const menuItems = [
     title: "Fejlett Dashboard",
     url: "/admin/enhanced",
     icon: TrendingUp,
+  },
+  {
+    title: "Könyvek / Termékek",
+    url: "/admin/products",
+    icon: BookOpen,
+  },
+  {
+    title: "Rendelések",
+    url: "/admin/orders",
+    icon: ShoppingCart,
+  },
+  {
+    title: "Szállítási díjak",
+    url: "/admin/shipping",
+    icon: Truck,
   },
   {
     title: "Időpontfoglalások",
