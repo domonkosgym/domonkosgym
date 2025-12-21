@@ -163,10 +163,10 @@ export const BooksSection = () => {
               <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
             </div>
           </div>
-          <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-foreground uppercase">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground uppercase">
             {getSectionTitle()}
           </h2>
-          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-0.5 sm:mt-1">
             {getSectionSubtitle()}
           </p>
         </div>
