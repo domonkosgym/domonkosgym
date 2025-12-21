@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { BookOpen, Package, ShoppingCart, ArrowLeft, Minus, Plus } from "lucide-react";
 
@@ -62,6 +63,13 @@ export default function BookDetail() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [boxProvider, setBoxProvider] = useState('');
   const [boxPointId, setBoxPointId] = useState('');
+  
+  // Billing address
+  const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
+  const [billingCountry, setBillingCountry] = useState('Magyarország');
+  const [billingPostalCode, setBillingPostalCode] = useState('');
+  const [billingCity, setBillingCity] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -166,7 +174,9 @@ export default function BookDetail() {
         name: 'Név',
         email: 'Email',
         phone: 'Telefon (opcionális)',
-        shippingInfo: 'Szállítási adatok',
+        shippingInfo: 'Postázási cím',
+        billingInfo: 'Számlázási cím',
+        billingSameAsShipping: 'Megegyezik a postázási címmel',
         shippingMethod: 'Szállítási mód',
         homeDelivery: 'Házhozszállítás',
         boxDelivery: 'Csomagpontra kérem',
@@ -203,7 +213,9 @@ export default function BookDetail() {
         name: 'Name',
         email: 'Email',
         phone: 'Phone (optional)',
-        shippingInfo: 'Shipping Information',
+        shippingInfo: 'Shipping Address',
+        billingInfo: 'Billing Address',
+        billingSameAsShipping: 'Same as shipping address',
         shippingMethod: 'Shipping Method',
         homeDelivery: 'Home Delivery',
         boxDelivery: 'Parcel Locker',
@@ -240,7 +252,9 @@ export default function BookDetail() {
         name: 'Nombre',
         email: 'Email',
         phone: 'Teléfono (opcional)',
-        shippingInfo: 'Información de Envío',
+        shippingInfo: 'Dirección de Envío',
+        billingInfo: 'Dirección de Facturación',
+        billingSameAsShipping: 'Igual que la dirección de envío',
         shippingMethod: 'Método de Envío',
         homeDelivery: 'Entrega a Domicilio',
         boxDelivery: 'Punto de Recogida',
@@ -291,11 +305,24 @@ export default function BookDetail() {
           return;
         }
       }
+      // Validate billing address if different from shipping
+      if (!billingSameAsShipping) {
+        if (!billingCountry || !billingPostalCode || !billingCity || !billingAddress) {
+          toast.error(labels.requiredFields);
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
 
     try {
+      // Determine billing address values
+      const finalBillingCountry = billingSameAsShipping ? shippingCountry : billingCountry;
+      const finalBillingPostalCode = billingSameAsShipping ? shippingPostalCode : billingPostalCode;
+      const finalBillingCity = billingSameAsShipping ? shippingCity : billingCity;
+      const finalBillingAddress = billingSameAsShipping ? shippingAddress : billingAddress;
+
       // Create order
       const orderData = {
         status: 'NEW' as const,
@@ -313,7 +340,13 @@ export default function BookDetail() {
         shipping_address: product.product_type === 'PHYSICAL' && shippingMethod === 'HOME' ? shippingAddress : null,
         box_provider: product.product_type === 'PHYSICAL' && shippingMethod === 'BOX' ? boxProvider : null,
         box_point_id: product.product_type === 'PHYSICAL' && shippingMethod === 'BOX' ? boxPointId : null,
-        box_point_label: product.product_type === 'PHYSICAL' && shippingMethod === 'BOX' ? `${boxProvider} - ${boxPointId}` : null
+        box_point_label: product.product_type === 'PHYSICAL' && shippingMethod === 'BOX' ? `${boxProvider} - ${boxPointId}` : null,
+        // Billing address
+        billing_same_as_shipping: product.product_type === 'PHYSICAL' ? billingSameAsShipping : true,
+        billing_country: product.product_type === 'PHYSICAL' ? finalBillingCountry : null,
+        billing_postal_code: product.product_type === 'PHYSICAL' ? finalBillingPostalCode : null,
+        billing_city: product.product_type === 'PHYSICAL' ? finalBillingCity : null,
+        billing_address: product.product_type === 'PHYSICAL' ? finalBillingAddress : null,
       };
 
       const { data: order, error: orderError } = await supabase
@@ -338,6 +371,11 @@ export default function BookDetail() {
 
       if (itemError) throw itemError;
 
+      // Build shipping address string for email
+      const shippingAddressStr = shippingMethod === 'HOME' 
+        ? `${shippingAddress}, ${shippingPostalCode} ${shippingCity}, ${shippingCountry}`
+        : `${boxProvider} - ${boxPointId}`;
+
       // If digital, create entitlement
       if (product.product_type === 'DIGITAL') {
         const { data: entitlement, error: entitlementError } = await supabase
@@ -351,9 +389,47 @@ export default function BookDetail() {
 
         if (entitlementError) throw entitlementError;
 
+        // Send order confirmation email
+        try {
+          await supabase.functions.invoke('send-order-confirmation', {
+            body: {
+              customerName,
+              customerEmail,
+              orderId: order.id,
+              productName: getTitle(),
+              quantity,
+              totalAmount: getTotalAmount(),
+              currency: product.currency,
+              productType: 'DIGITAL',
+              downloadToken: entitlement.token
+            }
+          });
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+        }
+
         toast.success(labels.successTitle);
         navigate(`/download/${entitlement.token}`);
       } else {
+        // Send order confirmation email for physical product
+        try {
+          await supabase.functions.invoke('send-order-confirmation', {
+            body: {
+              customerName,
+              customerEmail,
+              orderId: order.id,
+              productName: getTitle(),
+              quantity,
+              totalAmount: getTotalAmount(),
+              currency: product.currency,
+              productType: 'PHYSICAL',
+              shippingAddress: shippingAddressStr
+            }
+          });
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+        }
+
         toast.success(labels.successTitle);
         navigate(`/order-success/${order.id}`);
       }
@@ -625,6 +701,69 @@ export default function BookDetail() {
                           id="boxPointId"
                           value={boxPointId}
                           onChange={(e) => setBoxPointId(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Billing Address (only for physical when not using box delivery) */}
+              {product.product_type === 'PHYSICAL' && (
+                <div className="bg-card border border-border rounded-lg p-6">
+                  <h3 className="font-bold text-foreground mb-4">{labels.billingInfo}</h3>
+                  
+                  {shippingMethod === 'HOME' && (
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="billingSameAsShipping"
+                        checked={billingSameAsShipping}
+                        onCheckedChange={(checked) => setBillingSameAsShipping(checked === true)}
+                      />
+                      <Label htmlFor="billingSameAsShipping" className="text-sm cursor-pointer">
+                        {labels.billingSameAsShipping}
+                      </Label>
+                    </div>
+                  )}
+
+                  {(shippingMethod === 'BOX' || !billingSameAsShipping) && (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="billingCountry">{labels.country} *</Label>
+                        <Input
+                          id="billingCountry"
+                          value={billingCountry}
+                          onChange={(e) => setBillingCountry(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="billingPostalCode">{labels.postalCode} *</Label>
+                          <Input
+                            id="billingPostalCode"
+                            value={billingPostalCode}
+                            onChange={(e) => setBillingPostalCode(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="billingCity">{labels.city} *</Label>
+                          <Input
+                            id="billingCity"
+                            value={billingCity}
+                            onChange={(e) => setBillingCity(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="billingAddress">{labels.address} *</Label>
+                        <Input
+                          id="billingAddress"
+                          value={billingAddress}
+                          onChange={(e) => setBillingAddress(e.target.value)}
                           required
                         />
                       </div>

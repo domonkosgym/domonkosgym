@@ -162,6 +162,21 @@ export default function Checkout() {
 
         if (bookingError) throw bookingError;
 
+        // Send booking confirmation email
+        try {
+          await supabase.functions.invoke('send-booking-confirmation', {
+            body: {
+              customerName: formData.customerName,
+              customerEmail: formData.customerEmail,
+              serviceName: service.name,
+              scheduledDate: format(selectedDate, 'yyyy. MMMM dd.', { locale: hu }),
+              scheduledTime: selectedTime
+            }
+          });
+        } catch (emailError) {
+          console.error('Failed to send booking confirmation email:', emailError);
+        }
+
         setBookingResult({ depositPaid: 0, remainingAmount: 0 });
         setShowSuccessDialog(true);
         return;

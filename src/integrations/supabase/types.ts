@@ -794,6 +794,12 @@ export type Database = {
       }
       orders: {
         Row: {
+          billing_address: string | null
+          billing_city: string | null
+          billing_country: string | null
+          billing_name: string | null
+          billing_postal_code: string | null
+          billing_same_as_shipping: boolean | null
           box_point_id: string | null
           box_point_label: string | null
           box_provider: string | null
@@ -816,6 +822,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_name?: string | null
+          billing_postal_code?: string | null
+          billing_same_as_shipping?: boolean | null
           box_point_id?: string | null
           box_point_label?: string | null
           box_provider?: string | null
@@ -838,6 +850,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          billing_address?: string | null
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_name?: string | null
+          billing_postal_code?: string | null
+          billing_same_as_shipping?: boolean | null
           box_point_id?: string | null
           box_point_label?: string | null
           box_provider?: string | null
