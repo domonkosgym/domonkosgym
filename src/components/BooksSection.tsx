@@ -201,12 +201,12 @@ export const BooksSection = () => {
               {products.map((product) => (
                 <div 
                   key={product.id}
-                  className="flex-shrink-0 w-[100px] sm:w-[120px] md:w-[130px] lg:w-[140px] group cursor-pointer"
+                  className="flex-shrink-0 w-[120px] sm:w-[144px] md:w-[156px] lg:w-[168px] group cursor-pointer"
                   onClick={() => navigate(`/book/${product.id}`)}
                 >
-                <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-                    {/* Cover Image - 3:4 aspect ratio for better proportions */}
-                    <div className="relative aspect-[3/4] bg-muted overflow-hidden">
+                  <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
+                    {/* Cover Image - 3:4 aspect ratio */}
+                    <div className="relative aspect-[3/4] bg-muted overflow-hidden flex-shrink-0">
                       {product.cover_image_url ? (
                         <img
                           src={product.cover_image_url}
@@ -216,58 +216,58 @@ export const BooksSection = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                          <BookOpen className="w-8 h-8 text-primary/50" />
+                          <BookOpen className="w-10 h-10 text-primary/50" />
                         </div>
                       )}
 
                       {/* Badges */}
-                      <div className="absolute top-1 left-1 flex flex-col gap-0.5">
+                      <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5">
                         {product.is_featured && (
-                          <Badge className="bg-primary text-primary-foreground font-bold uppercase text-[6px] sm:text-[7px] px-1 py-0.5">
+                          <Badge className="bg-primary text-primary-foreground font-bold uppercase text-[7px] sm:text-[8px] px-1.5 py-0.5">
                             {getFeaturedLabel()}
                           </Badge>
                         )}
                         {product.is_on_sale && (
-                          <Badge className="bg-destructive text-destructive-foreground font-bold uppercase text-[6px] sm:text-[7px] px-1 py-0.5">
+                          <Badge className="bg-destructive text-destructive-foreground font-bold uppercase text-[7px] sm:text-[8px] px-1.5 py-0.5">
                             {getSaleLabel()}
                           </Badge>
                         )}
                       </div>
 
                       {/* Product Type Badge */}
-                      <div className="absolute bottom-1 left-1 right-1">
-                        <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm px-1 py-0.5 rounded-[3px]">
+                      <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                        <div className="flex items-center gap-1 bg-background/90 backdrop-blur-sm px-1.5 py-0.5 rounded-[3px]">
                           {product.product_type === 'DIGITAL' ? (
-                            <BookOpen className="w-2.5 h-2.5 text-primary" />
+                            <BookOpen className="w-3 h-3 text-primary flex-shrink-0" />
                           ) : (
-                            <Package className="w-2.5 h-2.5 text-primary" />
+                            <Package className="w-3 h-3 text-primary flex-shrink-0" />
                           )}
-                          <span className="text-[6px] sm:text-[7px] font-medium text-foreground truncate">
+                          <span className="text-[7px] sm:text-[8px] font-medium text-foreground truncate">
                             {getTypeLabel(product.product_type)}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-1.5 sm:p-2">
-                      <h3 className="font-bold text-[8px] sm:text-[9px] md:text-[10px] text-foreground mb-0.5 line-clamp-2 leading-tight">
+                    {/* Content - Fixed height */}
+                    <div className="p-2 sm:p-2.5 flex flex-col flex-grow">
+                      <h3 className="font-bold text-[9px] sm:text-[10px] md:text-[11px] text-foreground mb-1 line-clamp-2 leading-tight h-[28px] sm:h-[32px]">
                         {getTitle(product)}
                       </h3>
 
                       {/* Price */}
-                      <div className="flex items-center gap-0.5 mb-1">
+                      <div className="flex items-center gap-1 mb-1.5 mt-auto">
                         {product.is_on_sale && product.sale_price ? (
                           <>
-                            <span className="text-[10px] sm:text-xs font-bold text-primary">
+                            <span className="text-[11px] sm:text-xs font-bold text-primary">
                               {formatPrice(product.sale_price, product.currency)}
                             </span>
-                            <span className="text-[8px] text-muted-foreground line-through">
+                            <span className="text-[9px] text-muted-foreground line-through">
                               {formatPrice(product.price_gross, product.currency)}
                             </span>
                           </>
                         ) : (
-                          <span className="text-[10px] sm:text-xs font-bold text-primary">
+                          <span className="text-[11px] sm:text-xs font-bold text-primary">
                             {formatPrice(product.price_gross, product.currency)}
                           </span>
                         )}
@@ -275,7 +275,7 @@ export const BooksSection = () => {
 
                       {/* CTA Button */}
                       <Button
-                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[7px] sm:text-[8px] h-5 px-1"
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[8px] sm:text-[9px] h-6 px-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/book/${product.id}`);
