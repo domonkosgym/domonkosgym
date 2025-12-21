@@ -1008,9 +1008,12 @@ export type Database = {
           featured: boolean
           id: string
           image_url: string | null
+          is_on_sale: boolean
           name: string
           price: number
+          sale_price: number | null
           slug: string
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -1021,9 +1024,12 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          is_on_sale?: boolean
           name: string
           price: number
+          sale_price?: number | null
           slug: string
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -1034,9 +1040,12 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          is_on_sale?: boolean
           name?: string
           price?: number
+          sale_price?: number | null
           slug?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []

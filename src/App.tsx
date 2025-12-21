@@ -20,7 +20,7 @@ import Analytics from "./pages/admin/Analytics";
 import EnhancedDashboard from "./pages/admin/EnhancedDashboard";
 import Bookings from "./pages/admin/Bookings";
 import FAQEdit from "./pages/admin/FAQEdit";
-import ServicesAdmin from "./pages/admin/ServicesAdmin";
+
 import CompanyInfo from "./pages/admin/CompanyInfo";
 import Invoices from "./pages/admin/Invoices";
 import EmailManagement from "./pages/admin/EmailManagement";
@@ -61,7 +61,7 @@ const App = () => (
               <Route path="enhanced" element={<EnhancedDashboard />} />
               <Route path="bookings" element={<Bookings />} />
               <Route path="faq" element={<FAQEdit />} />
-              <Route path="services" element={<ServicesAdmin />} />
+              <Route path="services" element={<Navigate to="/admin/products" replace />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="company" element={<CompanyInfo />} />
               <Route path="email" element={<EmailManagement />} />

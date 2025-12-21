@@ -25,7 +25,7 @@ const menuItems = [
     icon: TrendingUp,
   },
   {
-    title: "Könyvek / Termékek",
+    title: "Könyvek / Szolgáltatások",
     url: "/admin/products",
     icon: BookOpen,
   },
@@ -53,11 +53,6 @@ const menuItems = [
     title: "B2B Ajánlatok",
     url: "/admin/b2b-leads",
     icon: Building2,
-  },
-  {
-    title: "Szolgáltatások",
-    url: "/admin/services",
-    icon: Package,
   },
   {
     title: "FAQ Kezelés",
