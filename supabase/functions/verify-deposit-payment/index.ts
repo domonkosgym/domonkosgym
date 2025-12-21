@@ -101,6 +101,106 @@ serve(async (req) => {
       console.log("[VERIFY-DEPOSIT-PAYMENT] Remaining to pay:", remainingAmount);
     }
 
+    // Send booking confirmation email
+    try {
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (resendApiKey) {
+        // Format date for email
+        const dateForEmail = new Date(metadata.scheduledDate).toLocaleDateString('hu-HU', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+
+        const emailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: "Domonkos Fitness <onboarding@resend.dev>",
+            to: [metadata.customerEmail],
+            subject: "Foglalás megerősítve - Domonkos Fitness",
+            html: `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="utf-8">
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #D4FF00, #B8E000); color: #000; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .booking-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #D4FF00; }
+                    .detail-row { padding: 10px 0; border-bottom: 1px solid #eee; }
+                    .detail-row:last-child { border-bottom: none; }
+                    .label { font-weight: bold; color: #666; }
+                    .value { color: #000; font-size: 16px; }
+                    .payment-info { background: #e8f5e9; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">
+                    <h1 style="margin: 0;">✅ Foglalás Megerősítve!</h1>
+                  </div>
+                  <div class="content">
+                    <p>Kedves ${metadata.customerName}!</p>
+                    <p>Örömmel értesítünk, hogy az időpontfoglalásod <strong>megerősítésre került</strong>.</p>
+                    
+                    <div class="booking-details">
+                      <div class="detail-row">
+                        <div class="label">Szolgáltatás:</div>
+                        <div class="value">${metadata.serviceName}</div>
+                      </div>
+                      <div class="detail-row">
+                        <div class="label">Dátum:</div>
+                        <div class="value">${dateForEmail}</div>
+                      </div>
+                      <div class="detail-row">
+                        <div class="label">Időpont:</div>
+                        <div class="value">${metadata.scheduledTime}</div>
+                      </div>
+                    </div>
+                    
+                    <div class="payment-info">
+                      <p><strong>💳 Fizetés állapota:</strong></p>
+                      <p>✓ Előleg fizetve: ${depositAmount.toLocaleString('hu-HU')} Ft</p>
+                      ${remainingAmount > 0 ? `<p>Fennmaradó összeg (helyszínen fizetendő): ${remainingAmount.toLocaleString('hu-HU')} Ft</p>` : ''}
+                    </div>
+                    
+                    <p>Kérlek, érkezz pontosan a megadott időpontra. Ha bármi kérdésed van, vagy módosítani szeretnéd az időpontot, kérlek vedd fel velem a kapcsolatot.</p>
+                    
+                    <p>Várlak szeretettel!</p>
+                    
+                    <p style="margin-top: 30px;">
+                      <strong>Üdvözlettel,</strong><br>
+                      Domonkos Zsolt<br>
+                      Fitness szakértő
+                    </p>
+                    
+                    <div class="footer">
+                      <p>Ez egy automatikus értesítő email. Kérlek ne válaszolj rá.</p>
+                    </div>
+                  </div>
+                </body>
+              </html>
+            `,
+          }),
+        });
+
+        if (emailResponse.ok) {
+          console.log("[VERIFY-DEPOSIT-PAYMENT] Confirmation email sent successfully");
+        } else {
+          const emailError = await emailResponse.text();
+          console.error("[VERIFY-DEPOSIT-PAYMENT] Email send error:", emailError);
+        }
+      }
+    } catch (emailError) {
+      console.error("[VERIFY-DEPOSIT-PAYMENT] Failed to send confirmation email:", emailError);
+      // Don't throw - booking is still successful even if email fails
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       booking: bookingData,
