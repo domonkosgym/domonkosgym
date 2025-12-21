@@ -88,6 +88,14 @@ export const BooksSection = () => {
     }
   };
 
+  const getSectionSubtitle = () => {
+    switch (language) {
+      case 'en': return 'Knowledge and inspiration for your fitness journey';
+      case 'es': return 'Conocimiento e inspiración para tu viaje fitness';
+      default: return 'Tudás és inspiráció a fitness utadhoz';
+    }
+  };
+
   const getTypeLabel = (type: 'DIGITAL' | 'PHYSICAL') => {
     if (type === 'DIGITAL') {
       switch (language) {
@@ -130,10 +138,11 @@ export const BooksSection = () => {
 
   if (loading) {
     return (
-      <section className="py-6 sm:py-8 md:py-10 px-3 sm:px-4 md:px-8 bg-background">
+      <section className="py-4 sm:py-6 md:py-8 px-2 sm:px-4 md:px-6 bg-background">
         <div className="container mx-auto">
-          <div className="animate-pulse flex justify-center">
-            <div className="h-6 w-32 bg-muted rounded"></div>
+          <div className="animate-pulse flex flex-col items-center gap-1">
+            <div className="h-4 w-24 bg-muted rounded"></div>
+            <div className="h-3 w-40 bg-muted rounded"></div>
           </div>
         </div>
       </section>
@@ -145,59 +154,59 @@ export const BooksSection = () => {
   }
 
   return (
-    <section className="py-6 sm:py-8 md:py-10 px-3 sm:px-4 md:px-8 bg-background">
-      <div className="container mx-auto max-w-4xl">
+    <section className="py-4 sm:py-6 md:py-8 px-2 sm:px-4 md:px-6 bg-background">
+      <div className="container mx-auto max-w-5xl">
         {/* Section Title */}
-        <div className="text-center mb-4 sm:mb-6">
-          <div className="flex justify-center mb-2">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+        <div className="text-center mb-3 sm:mb-4 md:mb-5">
+          <div className="flex justify-center mb-1.5 sm:mb-2">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-primary/20 flex items-center justify-center">
+              <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
             </div>
           </div>
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-foreground uppercase">
+          <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-foreground uppercase">
             {getSectionTitle()}
           </h2>
+          <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+            {getSectionSubtitle()}
+          </p>
         </div>
 
         {/* Carousel Container */}
-        <div className="relative">
+        <div className="relative px-6 md:px-8">
           {/* Navigation Arrows - Desktop */}
-          {products.length > 1 && (
+          {products.length > 4 && (
             <>
               <button
                 onClick={scrollLeft}
                 disabled={currentIndex === 0}
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-7 h-7 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={scrollRight}
-                disabled={currentIndex >= products.length - 1}
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-7 h-7 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
+                disabled={currentIndex >= products.length - 4}
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </>
           )}
 
           {/* Cards Container */}
-          <div className="overflow-hidden">
+          <div className="overflow-x-auto scrollbar-hide">
             <div 
-              className="flex gap-3 sm:gap-4 transition-transform duration-300 ease-out justify-center"
-              style={{ 
-                transform: `translateX(-${currentIndex * (100 / Math.min(products.length, 4))}%)`,
-              }}
+              className="flex gap-2 sm:gap-3 md:gap-4 justify-start md:justify-center pb-2"
             >
               {products.map((product) => (
                 <div 
                   key={product.id}
-                  className="flex-shrink-0 w-[140px] sm:w-[150px] md:w-[160px] group cursor-pointer"
+                  className="flex-shrink-0 w-[100px] sm:w-[120px] md:w-[130px] lg:w-[140px] group cursor-pointer"
                   onClick={() => navigate(`/book/${product.id}`)}
                 >
-                <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
-                    {/* Cover Image - 9:16 aspect ratio */}
-                    <div className="relative aspect-[9/16] bg-muted overflow-hidden">
+                <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+                    {/* Cover Image - 3:4 aspect ratio for better proportions */}
+                    <div className="relative aspect-[3/4] bg-muted overflow-hidden">
                       {product.cover_image_url ? (
                         <img
                           src={product.cover_image_url}
@@ -212,28 +221,28 @@ export const BooksSection = () => {
                       )}
 
                       {/* Badges */}
-                      <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">
+                      <div className="absolute top-1 left-1 flex flex-col gap-0.5">
                         {product.is_featured && (
-                          <Badge className="bg-primary text-primary-foreground font-bold uppercase text-[8px] px-1.5 py-0.5">
+                          <Badge className="bg-primary text-primary-foreground font-bold uppercase text-[6px] sm:text-[7px] px-1 py-0.5">
                             {getFeaturedLabel()}
                           </Badge>
                         )}
                         {product.is_on_sale && (
-                          <Badge className="bg-destructive text-destructive-foreground font-bold uppercase text-[8px] px-1.5 py-0.5">
+                          <Badge className="bg-destructive text-destructive-foreground font-bold uppercase text-[6px] sm:text-[7px] px-1 py-0.5">
                             {getSaleLabel()}
                           </Badge>
                         )}
                       </div>
 
                       {/* Product Type Badge */}
-                      <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                        <div className="flex items-center gap-1 bg-background/90 backdrop-blur-sm px-1.5 py-1 rounded-[5px]">
+                      <div className="absolute bottom-1 left-1 right-1">
+                        <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm px-1 py-0.5 rounded-[3px]">
                           {product.product_type === 'DIGITAL' ? (
-                            <BookOpen className="w-3 h-3 text-primary" />
+                            <BookOpen className="w-2.5 h-2.5 text-primary" />
                           ) : (
-                            <Package className="w-3 h-3 text-primary" />
+                            <Package className="w-2.5 h-2.5 text-primary" />
                           )}
-                          <span className="text-[8px] font-medium text-foreground truncate">
+                          <span className="text-[6px] sm:text-[7px] font-medium text-foreground truncate">
                             {getTypeLabel(product.product_type)}
                           </span>
                         </div>
@@ -241,24 +250,24 @@ export const BooksSection = () => {
                     </div>
 
                     {/* Content */}
-                    <div className="p-2 sm:p-2.5">
-                      <h3 className="font-bold text-[10px] sm:text-xs text-foreground mb-1 line-clamp-2">
+                    <div className="p-1.5 sm:p-2">
+                      <h3 className="font-bold text-[8px] sm:text-[9px] md:text-[10px] text-foreground mb-0.5 line-clamp-2 leading-tight">
                         {getTitle(product)}
                       </h3>
 
                       {/* Price */}
-                      <div className="flex items-center gap-1 mb-2">
+                      <div className="flex items-center gap-0.5 mb-1">
                         {product.is_on_sale && product.sale_price ? (
                           <>
-                            <span className="text-xs sm:text-sm font-bold text-primary">
+                            <span className="text-[10px] sm:text-xs font-bold text-primary">
                               {formatPrice(product.sale_price, product.currency)}
                             </span>
-                            <span className="text-[10px] text-muted-foreground line-through">
+                            <span className="text-[8px] text-muted-foreground line-through">
                               {formatPrice(product.price_gross, product.currency)}
                             </span>
                           </>
                         ) : (
-                          <span className="text-xs sm:text-sm font-bold text-primary">
+                          <span className="text-[10px] sm:text-xs font-bold text-primary">
                             {formatPrice(product.price_gross, product.currency)}
                           </span>
                         )}
@@ -266,7 +275,7 @@ export const BooksSection = () => {
 
                       {/* CTA Button */}
                       <Button
-                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[9px] h-6 px-2"
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[7px] sm:text-[8px] h-5 px-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/book/${product.id}`);
