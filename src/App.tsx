@@ -28,6 +28,8 @@ import SzamlazzSettings from "./pages/admin/SzamlazzSettings";
 import ProductsAdmin from "./pages/admin/ProductsAdmin";
 import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ShippingAdmin from "./pages/admin/ShippingAdmin";
+import CMSEditor from "./pages/admin/CMSEditor";
+import ThemeEditor from "./pages/admin/ThemeEditor";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TrackingWrapper } from "./components/TrackingWrapper";
@@ -67,6 +69,8 @@ const App = () => (
               <Route path="products" element={<ProductsAdmin />} />
               <Route path="orders" element={<OrdersAdmin />} />
               <Route path="shipping" element={<ShippingAdmin />} />
+              <Route path="cms" element={<CMSEditor />} />
+              <Route path="theme" element={<ThemeEditor />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
