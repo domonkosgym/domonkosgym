@@ -1,4 +1,4 @@
-import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette } from "lucide-react";
+import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -88,6 +88,16 @@ const menuItems = [
     title: "Számlázz.hu",
     url: "/admin/szamlazz",
     icon: Settings,
+  },
+  {
+    title: "Tartalom (CMS)",
+    url: "/admin/cms",
+    icon: FileEdit,
+  },
+  {
+    title: "Design / Téma",
+    url: "/admin/theme",
+    icon: Palette,
   },
 ];
 
