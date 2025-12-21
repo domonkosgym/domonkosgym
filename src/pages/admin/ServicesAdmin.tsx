@@ -25,6 +25,7 @@ interface Service {
 }
 
 const categories = [
+  "Kiemelt",
   "Tanácsadás",
   "Táplálkozási terv",
   "Edzésterv",
@@ -335,10 +336,66 @@ export default function ServicesAdmin() {
         </Dialog>
       </div>
 
+      {/* Kiemelt Szolgáltatásunk szekció */}
+      {services.filter(s => s.category === "Kiemelt").length > 0 && (
+        <Card className="p-6 bg-card border-primary/30 border-2">
+          <h2 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2">
+            ⭐ Kiemelt Szolgáltatásunk
+          </h2>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Név</TableHead>
+                  <TableHead>Leírás</TableHead>
+                  <TableHead className="text-right">Ár</TableHead>
+                  <TableHead className="text-center">Aktív</TableHead>
+                  <TableHead className="text-right">Műveletek</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {services.filter(s => s.category === "Kiemelt").map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium">{service.name}</TableCell>
+                    <TableCell className="max-w-xs truncate">{service.description}</TableCell>
+                    <TableCell className="text-right">
+                      {service.price === 0 ? "Ingyenes" : `${service.price.toLocaleString("hu-HU")} Ft`}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {service.active ? "✓" : "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(service)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(service.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Többi szolgáltatás */}
       <Card className="p-6 bg-card border-border">
+        <h2 className="text-lg font-semibold mb-4">Egyéb szolgáltatások</h2>
         {loading ? (
           <p>Betöltés...</p>
-        ) : services.length === 0 ? (
+        ) : services.filter(s => s.category !== "Kiemelt").length === 0 ? (
           <p className="text-muted-foreground">Még nincs szolgáltatás. Hozzon létre egyet a fenti gombbal.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -354,7 +411,7 @@ export default function ServicesAdmin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {services.map((service) => (
+                {services.filter(s => s.category !== "Kiemelt").map((service) => (
                   <TableRow key={service.id}>
                     <TableCell className="font-medium">{service.name}</TableCell>
                     <TableCell>{service.category}</TableCell>
