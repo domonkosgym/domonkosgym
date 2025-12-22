@@ -10,6 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Save, X, Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { ProcessStepsEditor } from "@/components/admin/ProcessStepsEditor";
+import { FAQEditor } from "@/components/admin/FAQEditor";
+import { ContactFormEditor } from "@/components/admin/ContactFormEditor";
+import { B2BFormEditor } from "@/components/admin/B2BFormEditor";
 
 interface LandingSection {
   id: string;
@@ -795,8 +798,31 @@ export default function LandingPageAdmin() {
                   </div>
                 )}
                 {activeSection.section_key === 'train_hard' && renderSloganEditor(activeSection)}
-                {activeSection.section_key === 'b2b' && renderB2BEditor(activeSection)}
-                {!['hero', 'bio', 'process', 'train_hard', 'b2b'].includes(activeSection.section_key) && renderDefaultEditor(activeSection)}
+                {activeSection.section_key === 'b2b' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      A B2B szekció és űrlap beállításai (főoldal + B2B oldal).
+                    </p>
+                    <B2BFormEditor />
+                  </div>
+                )}
+                {activeSection.section_key === 'faq' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Gyakran ismételt kérdések kezelése. Adj hozzá, szerkeszd vagy töröld a kérdéseket.
+                    </p>
+                    <FAQEditor />
+                  </div>
+                )}
+                {activeSection.section_key === 'contact' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      A kapcsolatfelvételi űrlap mezőinek és beállításainak kezelése.
+                    </p>
+                    <ContactFormEditor />
+                  </div>
+                )}
+                {!['hero', 'bio', 'process', 'train_hard', 'b2b', 'faq', 'contact'].includes(activeSection.section_key) && renderDefaultEditor(activeSection)}
               </CardContent>
             </>
           ) : (
