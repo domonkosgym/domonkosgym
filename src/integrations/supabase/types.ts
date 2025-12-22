@@ -670,6 +670,54 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body_html_en: string
+          body_html_es: string
+          body_html_hu: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          subject_en: string
+          subject_es: string
+          subject_hu: string
+          template_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          body_html_en?: string
+          body_html_es?: string
+          body_html_hu: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          subject_en?: string
+          subject_es?: string
+          subject_hu: string
+          template_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          body_html_en?: string
+          body_html_es?: string
+          body_html_hu?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          subject_en?: string
+          subject_es?: string
+          subject_hu?: string
+          template_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       faqs: {
         Row: {
           answer_en: string

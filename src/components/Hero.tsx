@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { CartIcon } from "@/components/CartIcon";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,6 +124,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
         
         <div className="flex items-center gap-2 sm:gap-4">
           <LanguageSelector />
+          <CartIcon />
           {/* Desktop button */}
           <Button
             onClick={handleReserveClick}

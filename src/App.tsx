@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import BookDetail from "./pages/BookDetail";
 import Download from "./pages/Download";
 import OrderSuccess from "./pages/OrderSuccess";
+import CartPage from "./pages/CartPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Leads from "./pages/admin/Leads";
@@ -40,6 +41,7 @@ import DatabaseExport from "./pages/admin/DatabaseExport";
 import About from "./pages/About";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CartProvider } from "./contexts/CartContext";
 import { TrackingWrapper } from "./components/TrackingWrapper";
 
 const queryClient = new QueryClient();
@@ -47,52 +49,55 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/checkout/:slug" element={<Checkout />} />
-            <Route path="/b2b" element={<B2B />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
-            <Route path="/book/:id" element={<BookDetail />} />
-            <Route path="/download/:token" element={<Download />} />
-            <Route path="/order-success/:orderId" element={<OrderSuccess />} />
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="leads" element={<Leads />} />
-              <Route path="b2b-leads" element={<B2BLeads />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="enhanced" element={<EnhancedDashboard />} />
-              <Route path="bookings" element={<Bookings />} />
-              <Route path="faq" element={<FAQEdit />} />
-              <Route path="services" element={<Navigate to="/admin/products" replace />} />
-              <Route path="invoices" element={<Invoices />} />
-              <Route path="company" element={<CompanyInfo />} />
-              <Route path="email" element={<EmailManagement />} />
-              <Route path="szamlazz" element={<SzamlazzSettings />} />
-              <Route path="products" element={<ProductsAdmin />} />
-              <Route path="orders" element={<OrdersAdmin />} />
-              <Route path="shipping" element={<ShippingAdmin />} />
-              <Route path="cms" element={<CMSEditor />} />
-              <Route path="theme" element={<ThemeEditor />} />
-              <Route path="featured-links" element={<FeaturedLinksAdmin />} />
-              <Route path="process-steps" element={<ProcessStepsAdmin />} />
-              <Route path="about" element={<AboutAdmin />} />
-              <Route path="site-images" element={<SiteImagesAdmin />} />
-              <Route path="landing" element={<LandingPageAdmin />} />
-              <Route path="domains" element={<DomainsAdmin />} />
-              <Route path="database-export" element={<DatabaseExport />} />
-              <Route path="*" element={<Navigate to="/admin" replace />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/checkout/:slug" element={<Checkout />} />
+              <Route path="/b2b" element={<B2B />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/book/:id" element={<BookDetail />} />
+              <Route path="/download/:token" element={<Download />} />
+              <Route path="/order-success/:orderId" element={<OrderSuccess />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="leads" element={<Leads />} />
+                <Route path="b2b-leads" element={<B2BLeads />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="enhanced" element={<EnhancedDashboard />} />
+                <Route path="bookings" element={<Bookings />} />
+                <Route path="faq" element={<FAQEdit />} />
+                <Route path="services" element={<Navigate to="/admin/products" replace />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route path="company" element={<CompanyInfo />} />
+                <Route path="email" element={<EmailManagement />} />
+                <Route path="szamlazz" element={<SzamlazzSettings />} />
+                <Route path="products" element={<ProductsAdmin />} />
+                <Route path="orders" element={<OrdersAdmin />} />
+                <Route path="shipping" element={<ShippingAdmin />} />
+                <Route path="cms" element={<CMSEditor />} />
+                <Route path="theme" element={<ThemeEditor />} />
+                <Route path="featured-links" element={<FeaturedLinksAdmin />} />
+                <Route path="process-steps" element={<ProcessStepsAdmin />} />
+                <Route path="about" element={<AboutAdmin />} />
+                <Route path="site-images" element={<SiteImagesAdmin />} />
+                <Route path="landing" element={<LandingPageAdmin />} />
+                <Route path="domains" element={<DomainsAdmin />} />
+                <Route path="database-export" element={<DatabaseExport />} />
+                <Route path="*" element={<Navigate to="/admin" replace />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

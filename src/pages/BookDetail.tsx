@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { BookOpen, Package, ShoppingCart, ArrowLeft, Minus, Plus } from "lucide-react";
+import { BookOpen, Package, ShoppingCart, ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { CartIcon } from "@/components/CartIcon";
 
 interface Product {
   id: string;
@@ -54,6 +57,7 @@ export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { addToCart } = useCart();
   
   const [product, setProduct] = useState<Product | null>(null);
   const [shippingConfig, setShippingConfig] = useState<ShippingConfig | null>(null);
@@ -496,7 +500,7 @@ export default function BookDetail() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
@@ -505,6 +509,10 @@ export default function BookDetail() {
             <ArrowLeft className="w-4 h-4" />
             {labels.back}
           </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <CartIcon />
+          </div>
         </div>
       </div>
 
@@ -863,6 +871,28 @@ export default function BookDetail() {
                     {labels.buyNow}
                   </>
                 )}
+              </Button>
+              
+              {/* Add to Cart Button */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full py-6 text-base"
+                onClick={() => {
+                  if (!product) return;
+                  addToCart({
+                    id: product.id,
+                    title: language === 'hu' ? product.title_hu : language === 'en' ? product.title_en : product.title_es,
+                    price: product.price_gross,
+                    salePrice: product.is_on_sale ? product.sale_price || undefined : undefined,
+                    coverImageUrl: product.cover_image_url,
+                    productType: product.product_type
+                  });
+                  toast.success('Termék kosárba helyezve!');
+                }}
+              >
+                <ShoppingBag className="w-5 h-5 mr-2" />
+                Kosárba helyezem
               </Button>
             </form>
           </div>
