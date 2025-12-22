@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Package, ArrowLeft, Truck } from "lucide-react";
@@ -25,13 +26,18 @@ interface Order {
 
 export default function OrderSuccess() {
   const { orderId } = useParams<{ orderId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
+  const { clearCart } = useCart();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Clear cart on successful order
+    clearCart();
+    
     const fetchOrder = async () => {
       if (!orderId) {
         setLoading(false);
@@ -61,7 +67,7 @@ export default function OrderSuccess() {
     };
 
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, clearCart]);
 
   const getLabels = () => {
     const labels: Record<string, Record<string, string>> = {
@@ -191,7 +197,7 @@ export default function OrderSuccess() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             {labels.backToHome}
           </Button>
-          <Button onClick={() => navigate('/#books')} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={() => navigate('/tudastar')} className="bg-primary text-primary-foreground hover:bg-primary/90">
             {labels.orderAgain}
           </Button>
         </div>

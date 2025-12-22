@@ -13,6 +13,7 @@ import BookDetail from "./pages/BookDetail";
 import Download from "./pages/Download";
 import OrderSuccess from "./pages/OrderSuccess";
 import CartPage from "./pages/CartPage";
+import Tudastar from "./pages/Tudastar";
 import AdminLayout from "./pages/admin/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Leads from "./pages/admin/Leads";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/download/:token" element={<Download />} />
               <Route path="/order-success/:orderId" element={<OrderSuccess />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/tudastar" element={<Tudastar />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="leads" element={<Leads />} />

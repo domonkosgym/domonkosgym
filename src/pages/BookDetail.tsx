@@ -193,7 +193,7 @@ export default function BookDetail() {
   const getLabels = () => {
     const labels: Record<string, Record<string, string>> = {
       hu: {
-        back: 'Vissza',
+        back: 'Vissza a Tudástárhoz',
         digital: 'E-könyv (online)',
         physical: 'Fizikai könyv (offline)',
         featured: 'Kiemelt',
@@ -232,7 +232,7 @@ export default function BookDetail() {
         requiredFields: 'Kérjük töltsd ki az összes kötelező mezőt!'
       },
       en: {
-        back: 'Back',
+        back: 'Back to Knowledge Base',
         digital: 'E-book (online)',
         physical: 'Physical book (offline)',
         featured: 'Featured',
@@ -271,7 +271,7 @@ export default function BookDetail() {
         requiredFields: 'Please fill in all required fields!'
       },
       es: {
-        back: 'Volver',
+        back: 'Volver a Base de Conocimiento',
         digital: 'E-libro (en línea)',
         physical: 'Libro físico (offline)',
         featured: 'Destacado',
@@ -488,7 +488,7 @@ export default function BookDetail() {
           <h1 className="text-2xl font-bold text-foreground mb-4">
             {language === 'en' ? 'Product not found' : language === 'es' ? 'Producto no encontrado' : 'A termék nem található'}
           </h1>
-          <Button onClick={() => navigate('/')}>
+          <Button onClick={() => navigate('/tudastar')}>
             {labels.back}
           </Button>
         </div>
@@ -503,7 +503,7 @@ export default function BookDetail() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate('/#books')}
+            onClick={() => navigate('/tudastar')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

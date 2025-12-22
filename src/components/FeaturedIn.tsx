@@ -108,8 +108,8 @@ export const FeaturedIn = () => {
   }
 
   return (
-    <section className="py-4 sm:py-6 md:py-8 px-2 sm:px-4 md:px-6 bg-secondary/30">
-      <div className="container mx-auto max-w-5xl">
+    <section className="py-4 sm:py-6 md:py-8 bg-secondary/30">
+      <div className="w-[90%] sm:w-full mx-auto max-w-5xl px-2 sm:px-4 md:px-6">
         {/* Section Title */}
         <div className="text-center mb-3 sm:mb-4 md:mb-5">
           <div className="flex justify-center mb-1.5 sm:mb-2">
@@ -128,21 +128,21 @@ export const FeaturedIn = () => {
         </div>
 
         {/* Carousel Container */}
-        <div className="relative px-8 md:px-10">
+        <div className="relative">
           {/* Navigation Arrows */}
           {links.length > 4 && (
             <>
               <button
                 onClick={scrollLeft}
                 disabled={currentIndex === 0}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
+                className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={scrollRight}
                 disabled={currentIndex >= links.length - 4}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
+                className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -150,7 +150,7 @@ export const FeaturedIn = () => {
           )}
 
           {/* Cards Container */}
-          <div className="overflow-hidden px-1">
+          <div className="overflow-hidden">
             <div 
               className="flex gap-3 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
               style={{
