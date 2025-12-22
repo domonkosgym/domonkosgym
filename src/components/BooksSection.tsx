@@ -80,61 +80,14 @@ export const BooksSection = () => {
     setCurrentIndex(Math.min(products.length - 1, currentIndex + 1));
   };
 
-  const getSectionTitle = () => {
-    switch (language) {
-      case 'en': return 'Books';
-      case 'es': return 'Libros';
-      default: return 'Könyvek';
-    }
-  };
-
-  const getSectionSubtitle = () => {
-    switch (language) {
-      case 'en': return 'Knowledge and inspiration for your fitness journey';
-      case 'es': return 'Conocimiento e inspiración para tu viaje fitness';
-      default: return 'Tudás és inspiráció a fitness utadhoz';
-    }
-  };
-
+  const getSectionTitle = () => t('books.title');
+  const getSectionSubtitle = () => t('books.subtitle');
   const getTypeLabel = (type: 'DIGITAL' | 'PHYSICAL') => {
-    if (type === 'DIGITAL') {
-      switch (language) {
-        case 'en': return 'E-book (online)';
-        case 'es': return 'E-libro (en línea)';
-        default: return 'E-könyv (online)';
-      }
-    } else {
-      switch (language) {
-        case 'en': return 'Physical book (offline)';
-        case 'es': return 'Libro físico (offline)';
-        default: return 'Fizikai könyv (offline)';
-      }
-    }
+    return type === 'DIGITAL' ? t('books.digital') : t('books.physical');
   };
-
-  const getFeaturedLabel = () => {
-    switch (language) {
-      case 'en': return 'Featured';
-      case 'es': return 'Destacado';
-      default: return 'Kiemelt';
-    }
-  };
-
-  const getSaleLabel = () => {
-    switch (language) {
-      case 'en': return 'Sale';
-      case 'es': return 'Oferta';
-      default: return 'Akció';
-    }
-  };
-
-  const getViewDetailsLabel = () => {
-    switch (language) {
-      case 'en': return 'View Details';
-      case 'es': return 'Ver detalles';
-      default: return 'Részletek';
-    }
-  };
+  const getFeaturedLabel = () => t('books.featured');
+  const getSaleLabel = () => t('books.sale');
+  const getViewDetailsLabel = () => t('books.viewDetails');
 
   if (loading) {
     return (
