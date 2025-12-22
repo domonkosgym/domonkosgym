@@ -29,7 +29,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
       <nav className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center px-2 sm:px-4 md:px-12 py-3 md:py-6 gap-2">
         <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
           <a href="/" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.home')}</a>
-          <a href="/#about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
+          <a href="/about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
           <a href="/services" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.services')}</a>
           {/* Foglalj helyet button on mobile and tablet */}
           <Button
