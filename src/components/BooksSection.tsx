@@ -147,14 +147,14 @@ export const BooksSection = () => {
           )}
 
           {/* Cards Container */}
-          <div className="overflow-x-auto scrollbar-hide">
+          <div className="overflow-hidden">
             <div 
               className="flex gap-2 sm:gap-3 md:gap-4 justify-start md:justify-center pb-2"
             >
               {products.map((product) => (
                 <div 
                   key={product.id}
-                  className="flex-shrink-0 w-[120px] sm:w-[144px] md:w-[156px] lg:w-[168px] group cursor-pointer"
+                  className="flex-shrink-0 w-[138px] sm:w-[166px] md:w-[180px] lg:w-[193px] group cursor-pointer"
                   onClick={() => navigate(`/book/${product.id}`)}
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
