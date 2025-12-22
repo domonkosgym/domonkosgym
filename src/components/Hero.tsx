@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 import workoutImage from "@/assets/workout-1.jpg";
 
 interface HeroProps {
@@ -12,6 +14,23 @@ interface HeroProps {
 export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
   const { t } = useLanguage();
   const { trackCTAClick } = useAnalytics();
+  const [heroImage, setHeroImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchHeroImage = async () => {
+      const { data, error } = await supabase
+        .from('site_images')
+        .select('image_url')
+        .eq('image_key', 'hero_main')
+        .maybeSingle();
+
+      if (!error && data?.image_url) {
+        setHeroImage(data.image_url);
+      }
+    };
+
+    fetchHeroImage();
+  }, []);
 
   const handleReserveClick = () => {
     trackCTAClick(t('hero.reserveSpot'), 'primary_cta');
@@ -113,7 +132,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
         {/* Right Side - Large Image */}
         <div className="w-full lg:w-1/2 relative min-h-[40vh] lg:min-h-screen">
           <img
-            src={workoutImage}
+            src={heroImage || workoutImage}
             alt="Training Hard"
             className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
           />

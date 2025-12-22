@@ -65,6 +65,54 @@ export type Database = {
         }
         Relationships: []
       }
+      about_sections: {
+        Row: {
+          content_en: string
+          content_es: string
+          content_hu: string
+          created_at: string | null
+          id: string
+          image_urls: string[] | null
+          is_active: boolean | null
+          section_key: string
+          sort_order: number | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_en?: string
+          content_es?: string
+          content_hu?: string
+          created_at?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          section_key: string
+          sort_order?: number | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_en?: string
+          content_es?: string
+          content_hu?: string
+          created_at?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          section_key?: string
+          sort_order?: number | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       availability_slots: {
         Row: {
           created_at: string
@@ -1283,6 +1331,39 @@ export type Database = {
           currency?: string
           free_shipping_threshold?: number | null
           id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      site_images: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_key: string
+          image_url: string | null
+          label_en: string
+          label_hu: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_key: string
+          image_url?: string | null
+          label_en?: string
+          label_hu?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_key?: string
+          image_url?: string | null
+          label_en?: string
+          label_hu?: string
           updated_at?: string | null
         }
         Relationships: []

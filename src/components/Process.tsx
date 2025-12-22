@@ -42,23 +42,37 @@ interface ProcessStep {
 export const Process = () => {
   const { language, t } = useLanguage();
   const [steps, setSteps] = useState<ProcessStep[]>([]);
+  const [sectionImage, setSectionImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSteps = async () => {
-      const { data, error } = await supabase
-        .from('process_steps')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
+    const fetchData = async () => {
+      // Fetch steps and section image in parallel
+      const [stepsResult, imageResult] = await Promise.all([
+        supabase
+          .from('process_steps')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('site_images')
+          .select('image_url')
+          .eq('image_key', 'process_section')
+          .maybeSingle()
+      ]);
 
-      if (!error && data) {
-        setSteps(data);
+      if (!stepsResult.error && stepsResult.data) {
+        setSteps(stepsResult.data);
       }
+      
+      if (!imageResult.error && imageResult.data?.image_url) {
+        setSectionImage(imageResult.data.image_url);
+      }
+      
       setLoading(false);
     };
 
-    fetchSteps();
+    fetchData();
   }, []);
 
   const getTitle = (step: ProcessStep) => {
@@ -137,7 +151,7 @@ export const Process = () => {
           </div>
           <div className="order-first lg:order-last">
             <img
-              src={gymAction}
+              src={sectionImage || gymAction}
               alt="Workout process"
               className="w-full h-auto max-h-[300px] sm:max-h-[400px] lg:max-h-none object-cover rounded-lg"
             />
