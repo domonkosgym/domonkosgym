@@ -156,7 +156,8 @@ const defaultTranslations: Record<Language, any> = {
       takeMore: 'VÁLLALJ TÖBBET!'
     },
     featuredIn: {
-      title: 'MEGJELENT'
+      title: 'MEGJELENT',
+      subtitle: 'Válogatás a megjelenésekből'
     },
     bio: {
       title: 'Rólam',
@@ -295,7 +296,8 @@ const defaultTranslations: Record<Language, any> = {
       takeMore: 'TAKE ON MORE!'
     },
     featuredIn: {
-      title: 'FEATURED IN'
+      title: 'FEATURED IN',
+      subtitle: 'Selection of appearances'
     },
     bio: {
       title: 'About Me',
@@ -434,7 +436,8 @@ const defaultTranslations: Record<Language, any> = {
       takeMore: '¡ASUME MÁS!'
     },
     featuredIn: {
-      title: 'DESTACADO EN'
+      title: 'DESTACADO EN',
+      subtitle: 'Selección de apariciones'
     },
     bio: {
       title: 'Sobre mí',

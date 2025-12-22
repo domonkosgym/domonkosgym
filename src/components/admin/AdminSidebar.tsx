@@ -1,4 +1,4 @@
-import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit } from "lucide-react";
+import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit, ExternalLink } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const menuItems = [
     title: "Könyvek / Szolgáltatások",
     url: "/admin/products",
     icon: BookOpen,
+  },
+  {
+    title: "Megjelenések / Linkek",
+    url: "/admin/featured-links",
+    icon: ExternalLink,
   },
   {
     title: "Rendelések",

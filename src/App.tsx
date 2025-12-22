@@ -30,6 +30,7 @@ import OrdersAdmin from "./pages/admin/OrdersAdmin";
 import ShippingAdmin from "./pages/admin/ShippingAdmin";
 import CMSEditor from "./pages/admin/CMSEditor";
 import ThemeEditor from "./pages/admin/ThemeEditor";
+import FeaturedLinksAdmin from "./pages/admin/FeaturedLinksAdmin";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TrackingWrapper } from "./components/TrackingWrapper";
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="shipping" element={<ShippingAdmin />} />
               <Route path="cms" element={<CMSEditor />} />
               <Route path="theme" element={<ThemeEditor />} />
+              <Route path="featured-links" element={<FeaturedLinksAdmin />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />

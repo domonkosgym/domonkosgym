@@ -580,6 +580,57 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_links: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          description_en: string | null
+          description_es: string | null
+          description_hu: string | null
+          id: string
+          is_active: boolean | null
+          is_youtube: boolean | null
+          sort_order: number | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description_en?: string | null
+          description_es?: string | null
+          description_hu?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_youtube?: boolean | null
+          sort_order?: number | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description_en?: string | null
+          description_es?: string | null
+          description_hu?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_youtube?: boolean | null
+          sort_order?: number | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       form_interactions: {
         Row: {
           abandoned: boolean | null
