@@ -55,15 +55,16 @@ export const FeaturedIn = () => {
     }
   };
 
-  const visibleItems = 4;
-  const maxIndex = Math.max(0, links.length - visibleItems);
-
+  // Use same card sizing as BooksSection for consistency
+  const cardWidth = 193; // lg width in pixels
+  const gap = 16; // gap-4 = 16px
+  
   const scrollLeft = () => {
     setCurrentIndex(Math.max(0, currentIndex - 1));
   };
 
   const scrollRight = () => {
-    setCurrentIndex(Math.min(maxIndex, currentIndex + 1));
+    setCurrentIndex(Math.min(links.length - 1, currentIndex + 1));
   };
 
   if (loading) {
@@ -115,7 +116,7 @@ export const FeaturedIn = () => {
               </button>
               <button
                 onClick={scrollRight}
-                disabled={currentIndex >= maxIndex}
+                disabled={currentIndex >= links.length - 4}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -126,9 +127,9 @@ export const FeaturedIn = () => {
           {/* Cards Container */}
           <div className="overflow-hidden">
             <div 
-              className="flex gap-4 transition-transform duration-300 ease-out pb-2"
+              className="flex gap-2 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
               style={{
-                transform: `translateX(calc(-${currentIndex} * (25% + 0px)))`,
+                transform: `translateX(-${currentIndex * (cardWidth + gap)}px)`,
               }}
             >
               {links.map((link) => (
@@ -137,7 +138,7 @@ export const FeaturedIn = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 w-[calc(25%-12px)] min-w-[152px] group"
+                  className="flex-shrink-0 w-[138px] sm:w-[166px] md:w-[180px] lg:w-[193px] group"
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
                     {/* Cover Image - Square aspect ratio */}
