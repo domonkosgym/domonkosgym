@@ -65,11 +65,6 @@ const menuItems = [
     icon: HelpCircle,
   },
   {
-    title: "Hogyan Működik",
-    url: "/admin/process-steps",
-    icon: ListOrdered,
-  },
-  {
     title: "Számlák",
     url: "/admin/invoices",
     icon: Receipt,

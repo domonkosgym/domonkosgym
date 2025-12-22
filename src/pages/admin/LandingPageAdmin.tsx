@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Save, X, Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ProcessStepsEditor } from "@/components/admin/ProcessStepsEditor";
 
 interface LandingSection {
   id: string;
@@ -40,6 +41,15 @@ interface HeroContent {
 interface BioContent {
   text1: string;
   text2: string;
+}
+
+interface SloganContent {
+  text: string;
+}
+
+interface B2BContent {
+  description: string;
+  button: string;
 }
 
 export default function LandingPageAdmin() {
@@ -445,6 +455,93 @@ export default function LandingPageAdmin() {
     );
   };
 
+  const renderSloganEditor = (section: LandingSection) => {
+    const contentHu = parseJsonContent<SloganContent>(section.content_hu, { text: '' });
+    const contentEn = parseJsonContent<SloganContent>(section.content_en, { text: '' });
+    const contentEs = parseJsonContent<SloganContent>(section.content_es, { text: '' });
+
+    return (
+      <Tabs defaultValue="hu" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsTrigger value="hu">Magyar</TabsTrigger>
+          <TabsTrigger value="en">English</TabsTrigger>
+          <TabsTrigger value="es">Español</TabsTrigger>
+        </TabsList>
+
+        {(['hu', 'en', 'es'] as const).map((lang) => {
+          const content = lang === 'hu' ? contentHu : lang === 'en' ? contentEn : contentEs;
+          
+          return (
+            <TabsContent key={lang} value={lang} className="space-y-4 mt-4">
+              <div>
+                <Label className="text-muted-foreground">Szlogen szöveg</Label>
+                <Input
+                  value={content.text || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'text', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                  placeholder="pl. EDDZ KEMÉNYEN! ÉLJ JOBBAN!"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tipp: A felkiáltójel után lévő rész más színnel jelenik meg
+                </p>
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    );
+  };
+
+  const renderB2BEditor = (section: LandingSection) => {
+    const contentHu = parseJsonContent<B2BContent>(section.content_hu, { description: '', button: '' });
+    const contentEn = parseJsonContent<B2BContent>(section.content_en, { description: '', button: '' });
+    const contentEs = parseJsonContent<B2BContent>(section.content_es, { description: '', button: '' });
+
+    return (
+      <Tabs defaultValue="hu" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsTrigger value="hu">Magyar</TabsTrigger>
+          <TabsTrigger value="en">English</TabsTrigger>
+          <TabsTrigger value="es">Español</TabsTrigger>
+        </TabsList>
+
+        {(['hu', 'en', 'es'] as const).map((lang) => {
+          const content = lang === 'hu' ? contentHu : lang === 'en' ? contentEn : contentEs;
+          
+          return (
+            <TabsContent key={lang} value={lang} className="space-y-4 mt-4">
+              <div>
+                <Label className="text-muted-foreground">Cím</Label>
+                <Input
+                  value={section[`title_${lang}` as keyof LandingSection] as string}
+                  onChange={(e) => updateSection(section.id, { [`title_${lang}`]: e.target.value })}
+                  className="bg-muted border-border text-foreground mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Leírás</Label>
+                <Textarea
+                  value={content.description || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'description', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Gomb szöveg</Label>
+                <Input
+                  value={content.button || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'button', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                />
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    );
+  };
+
   const renderDefaultEditor = (section: LandingSection) => (
     <Tabs defaultValue="hu" className="w-full">
       <TabsList className="grid w-full grid-cols-3 bg-muted">
@@ -689,7 +786,17 @@ export default function LandingPageAdmin() {
                 {/* Content Editor based on section type */}
                 {activeSection.section_key === 'hero' && renderHeroEditor(activeSection)}
                 {activeSection.section_key === 'bio' && renderBioEditor(activeSection)}
-                {!['hero', 'bio'].includes(activeSection.section_key) && renderDefaultEditor(activeSection)}
+                {activeSection.section_key === 'process' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      A "Hogyan működik?" szekció lépéseinek kezelése. Adj hozzá, szerkeszd vagy töröld a lépéseket.
+                    </p>
+                    <ProcessStepsEditor />
+                  </div>
+                )}
+                {activeSection.section_key === 'train_hard' && renderSloganEditor(activeSection)}
+                {activeSection.section_key === 'b2b' && renderB2BEditor(activeSection)}
+                {!['hero', 'bio', 'process', 'train_hard', 'b2b'].includes(activeSection.section_key) && renderDefaultEditor(activeSection)}
               </CardContent>
             </>
           ) : (
