@@ -55,12 +55,15 @@ export const FeaturedIn = () => {
     }
   };
 
+  const visibleItems = 4;
+  const maxIndex = Math.max(0, links.length - visibleItems);
+
   const scrollLeft = () => {
     setCurrentIndex(Math.max(0, currentIndex - 1));
   };
 
   const scrollRight = () => {
-    setCurrentIndex(Math.min(links.length - 1, currentIndex + 1));
+    setCurrentIndex(Math.min(maxIndex, currentIndex + 1));
   };
 
   if (loading) {
@@ -112,7 +115,7 @@ export const FeaturedIn = () => {
               </button>
               <button
                 onClick={scrollRight}
-                disabled={currentIndex >= links.length - 4}
+                disabled={currentIndex >= maxIndex}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronRight className="w-5 h-5" />
