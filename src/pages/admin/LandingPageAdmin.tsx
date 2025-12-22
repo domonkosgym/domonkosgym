@@ -1,94 +1,161 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { GripVertical, Eye, EyeOff } from "lucide-react";
+import { Save, X, GripVertical, Plus, ChevronUp, ChevronDown } from "lucide-react";
 
-type LandingSection = {
+interface LandingSection {
   id: string;
   section_key: string;
   title_hu: string;
   title_en: string;
   title_es: string;
-  is_active: boolean;
+  subtitle_hu: string | null;
+  subtitle_en: string | null;
+  subtitle_es: string | null;
+  content_hu: string;
+  content_en: string;
+  content_es: string;
+  image_urls: string[];
   sort_order: number;
-};
+  is_active: boolean;
+}
 
 export default function LandingPageAdmin() {
-  const queryClient = useQueryClient();
+  const [sections, setSections] = useState<LandingSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: sections, isLoading } = useQuery({
-    queryKey: ["landing-sections-admin"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("landing_page_sections")
-        .select("*")
-        .order("sort_order", { ascending: true });
+  useEffect(() => {
+    loadSections();
+  }, []);
 
-      if (error) throw error;
-      return data as LandingSection[];
-    },
-  });
+  const loadSections = async () => {
+    const { data, error } = await supabase
+      .from("landing_page_sections")
+      .select("*")
+      .order("sort_order");
 
-  const updateSectionMutation = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { error } = await supabase
-        .from("landing_page_sections")
-        .update({ is_active, updated_at: new Date().toISOString() })
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["landing-sections-admin"] });
-      queryClient.invalidateQueries({ queryKey: ["landing-sections"] });
-      toast.success("Szekció frissítve");
-    },
-    onError: () => {
-      toast.error("Hiba történt a mentés során");
-    },
-  });
-
-  const updateOrderMutation = useMutation({
-    mutationFn: async (updates: { id: string; sort_order: number }[]) => {
-      for (const update of updates) {
-        const { error } = await supabase
-          .from("landing_page_sections")
-          .update({ sort_order: update.sort_order, updated_at: new Date().toISOString() })
-          .eq("id", update.id);
-
-        if (error) throw error;
+    if (error) {
+      console.error(error);
+      toast.error("Hiba az adatok betöltésekor");
+    } else if (data) {
+      setSections(data);
+      if (data.length > 0 && !activeSectionId) {
+        setActiveSectionId(data[0].id);
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["landing-sections-admin"] });
-      queryClient.invalidateQueries({ queryKey: ["landing-sections"] });
-      toast.success("Sorrend mentve");
-    },
-    onError: () => {
-      toast.error("Hiba történt a sorrend mentésekor");
-    },
-  });
+    }
+    setLoading(false);
+  };
+
+  const updateSection = (id: string, updates: Partial<LandingSection>) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
 
   const moveSection = (index: number, direction: "up" | "down") => {
-    if (!sections) return;
-    
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= sections.length) return;
 
     const newSections = [...sections];
     [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
     
-    const updates = newSections.map((section, idx) => ({
-      id: section.id,
+    // Update sort_order values
+    const updatedSections = newSections.map((section, idx) => ({
+      ...section,
       sort_order: idx + 1,
     }));
+    
+    setSections(updatedSections);
+  };
 
-    updateOrderMutation.mutate(updates);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, sectionId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFor(sectionId);
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `landing-${sectionId}-${Date.now()}.${fileExt}`;
+    const filePath = `landing/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('book-covers')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      toast.error('Hiba a kép feltöltésekor');
+      console.error(uploadError);
+      setUploadingFor(null);
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('book-covers')
+      .getPublicUrl(filePath);
+
+    const section = sections.find(s => s.id === sectionId);
+    if (section) {
+      const newImages = [...(section.image_urls || []), publicUrl];
+      updateSection(sectionId, { image_urls: newImages });
+    }
+    
+    setUploadingFor(null);
+    toast.success('Kép feltöltve');
+    
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (sectionId: string, imageIndex: number) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (section) {
+      const newImages = section.image_urls.filter((_, i) => i !== imageIndex);
+      updateSection(sectionId, { image_urls: newImages });
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+
+    for (const section of sections) {
+      const { error } = await supabase
+        .from("landing_page_sections")
+        .update({
+          title_hu: section.title_hu,
+          title_en: section.title_en,
+          title_es: section.title_es,
+          subtitle_hu: section.subtitle_hu,
+          subtitle_en: section.subtitle_en,
+          subtitle_es: section.subtitle_es,
+          content_hu: section.content_hu,
+          content_en: section.content_en,
+          content_es: section.content_es,
+          image_urls: section.image_urls,
+          is_active: section.is_active,
+          sort_order: section.sort_order,
+        })
+        .eq("id", section.id);
+
+      if (error) {
+        toast.error(`Hiba a mentéskor: ${section.title_hu}`);
+        console.error(error);
+        setSaving(false);
+        return;
+      }
+    }
+
+    toast.success("Főoldal mentve");
+    setSaving(false);
   };
 
   const getSectionDescription = (key: string): string => {
@@ -106,107 +173,256 @@ export default function LandingPageAdmin() {
     return descriptions[key] || "";
   };
 
-  if (isLoading) {
+  const activeSection = sections.find(s => s.id === activeSectionId);
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-64 bg-muted rounded"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Főoldal szekciók</h1>
-        <p className="text-muted-foreground mt-1">
-          A főoldal szekciók sorrendjének és láthatóságának kezelése
-        </p>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Főoldal Szekciók</h1>
+          <p className="text-muted-foreground mt-1">Szerkeszd a főoldal különböző szekciót</p>
+        </div>
+        <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
+          <Save className="w-4 h-4 mr-2" />
+          {saving ? "Mentés..." : "Összes mentése"}
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Szekciók</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {sections?.map((section, index) => (
-            <div
-              key={section.id}
-              className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
-                section.is_active 
-                  ? "bg-card border-border" 
-                  : "bg-muted/50 border-border/50"
-              }`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col gap-1">
+      <div className="grid lg:grid-cols-4 gap-6">
+        {/* Sections List */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground text-lg">Szekciók</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {sections.map((section, index) => (
+              <div
+                key={section.id}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                  activeSectionId === section.id 
+                    ? 'bg-primary/20 border border-primary/50' 
+                    : 'bg-muted/50 hover:bg-muted'
+                }`}
+                onClick={() => setActiveSectionId(section.id)}
+              >
+                {/* Move buttons */}
+                <div className="flex flex-col gap-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
-                    onClick={() => moveSection(index, "up")}
+                    className="h-5 w-5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSection(index, "up");
+                    }}
                     disabled={index === 0}
                   >
-                    <GripVertical className="h-4 w-4 rotate-90" />
-                    <span className="sr-only">Fel</span>
+                    <ChevronUp className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6"
-                    onClick={() => moveSection(index, "down")}
-                    disabled={index === (sections?.length ?? 0) - 1}
+                    className="h-5 w-5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSection(index, "down");
+                    }}
+                    disabled={index === sections.length - 1}
                   >
-                    <GripVertical className="h-4 w-4 -rotate-90" />
-                    <span className="sr-only">Le</span>
+                    <ChevronDown className="h-3 w-3" />
                   </Button>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-foreground">
-                      {section.title_hu}
-                    </h3>
-                    {section.is_active ? (
-                      <Eye className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {getSectionDescription(section.section_key)}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground text-sm font-medium truncate">{section.title_hu}</p>
+                  <p className="text-muted-foreground text-xs truncate">{getSectionDescription(section.section_key)}</p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Label htmlFor={`active-${section.id}`} className="text-sm">
-                  {section.is_active ? "Aktív" : "Inaktív"}
-                </Label>
                 <Switch
-                  id={`active-${section.id}`}
                   checked={section.is_active}
-                  onCheckedChange={(checked) =>
-                    updateSectionMutation.mutate({ id: section.id, is_active: checked })
-                  }
+                  onCheckedChange={(checked) => updateSection(section.id, { is_active: checked })}
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Tippek</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>• A szekciók sorrendjét a fel/le nyilakkal módosíthatod</p>
-          <p>• A kapcsolóval ki-be kapcsolhatod az egyes szekciókat</p>
-          <p>• A kikapcsolt szekciók nem jelennek meg a főoldalon</p>
-          <p>• A szekciók tartalmát a "Tartalom (CMS)" menüpontban szerkesztheted</p>
-          <p>• A képeket a "Főoldal Képek" menüpontban cserélheted</p>
-        </CardContent>
-      </Card>
+        {/* Section Editor */}
+        <Card className="lg:col-span-3 bg-card border-border">
+          {activeSection ? (
+            <>
+              <CardHeader>
+                <CardTitle className="text-foreground text-lg">
+                  {activeSection.title_hu} szerkesztése
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  {getSectionDescription(activeSection.section_key)}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Images */}
+                <div>
+                  <Label className="text-muted-foreground mb-3 block">Képek (max. 4)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {(activeSection.image_urls || []).map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7"
+                          onClick={() => removeImage(activeSection.id, index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    {(!activeSection.image_urls || activeSection.image_urls.length < 4) && (
+                      <div 
+                        className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors bg-muted/50"
+                        onClick={() => {
+                          setUploadingFor(activeSection.id);
+                          imageInputRef.current?.click();
+                        }}
+                      >
+                        {uploadingFor === activeSection.id ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        ) : (
+                          <>
+                            <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Kép hozzáadása</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => uploadingFor && handleImageUpload(e, uploadingFor)}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Content Editor */}
+                <Tabs defaultValue="hu" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 bg-muted">
+                    <TabsTrigger value="hu">Magyar</TabsTrigger>
+                    <TabsTrigger value="en">English</TabsTrigger>
+                    <TabsTrigger value="es">Español</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="hu" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-muted-foreground">Cím (HU)</Label>
+                      <Input
+                        value={activeSection.title_hu}
+                        onChange={(e) => updateSection(activeSection.id, { title_hu: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Alcím (HU)</Label>
+                      <Input
+                        value={activeSection.subtitle_hu || ""}
+                        onChange={(e) => updateSection(activeSection.id, { subtitle_hu: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        placeholder="Opcionális alcím..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Tartalom (HU)</Label>
+                      <Textarea
+                        value={activeSection.content_hu}
+                        onChange={(e) => updateSection(activeSection.id, { content_hu: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        rows={6}
+                        placeholder="Használj dupla sortörést új bekezdéshez..."
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="en" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-muted-foreground">Title (EN)</Label>
+                      <Input
+                        value={activeSection.title_en}
+                        onChange={(e) => updateSection(activeSection.id, { title_en: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Subtitle (EN)</Label>
+                      <Input
+                        value={activeSection.subtitle_en || ""}
+                        onChange={(e) => updateSection(activeSection.id, { subtitle_en: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        placeholder="Optional subtitle..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Content (EN)</Label>
+                      <Textarea
+                        value={activeSection.content_en}
+                        onChange={(e) => updateSection(activeSection.id, { content_en: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        rows={6}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="es" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-muted-foreground">Título (ES)</Label>
+                      <Input
+                        value={activeSection.title_es}
+                        onChange={(e) => updateSection(activeSection.id, { title_es: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Subtítulo (ES)</Label>
+                      <Input
+                        value={activeSection.subtitle_es || ""}
+                        onChange={(e) => updateSection(activeSection.id, { subtitle_es: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        placeholder="Subtítulo opcional..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Contenido (ES)</Label>
+                      <Textarea
+                        value={activeSection.content_es}
+                        onChange={(e) => updateSection(activeSection.id, { content_es: e.target.value })}
+                        className="bg-muted border-border text-foreground mt-1"
+                        rows={6}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </>
+          ) : (
+            <CardContent className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">Válassz ki egy szekciót a szerkesztéshez</p>
+            </CardContent>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

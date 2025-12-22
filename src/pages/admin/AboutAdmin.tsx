@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, Upload, X, ImageIcon, GripVertical, Plus } from "lucide-react";
+import { Save, X, Plus, ChevronUp, ChevronDown } from "lucide-react";
 
 interface AboutSection {
   id: string;
@@ -56,6 +56,22 @@ export default function AboutAdmin() {
 
   const updateSection = (id: string, updates: Partial<AboutSection>) => {
     setSections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const moveSection = (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+
+    const newSections = [...sections];
+    [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
+    
+    // Update sort_order values
+    const updatedSections = newSections.map((section, idx) => ({
+      ...section,
+      sort_order: idx + 1,
+    }));
+    
+    setSections(updatedSections);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, sectionId: string) => {
@@ -143,8 +159,8 @@ export default function AboutAdmin() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-700 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-700 rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="h-64 bg-muted rounded"></div>
         </div>
       </div>
     );
@@ -154,8 +170,8 @@ export default function AboutAdmin() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Rólam Oldal Szekciók</h1>
-          <p className="text-gray-400 mt-1">Szerkeszd a Rólam oldal különböző szekciót</p>
+          <h1 className="text-2xl font-bold text-foreground">Rólam Oldal Szekciók</h1>
+          <p className="text-muted-foreground mt-1">Szerkeszd a Rólam oldal különböző szekciót</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
           <Save className="w-4 h-4 mr-2" />
@@ -165,25 +181,52 @@ export default function AboutAdmin() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Sections List */}
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Szekciók</CardTitle>
+            <CardTitle className="text-foreground text-lg">Szekciók</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {sections.map((section) => (
+            {sections.map((section, index) => (
               <div
                 key={section.id}
                 className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
                   activeSectionId === section.id 
                     ? 'bg-primary/20 border border-primary/50' 
-                    : 'bg-gray-700/50 hover:bg-gray-700'
+                    : 'bg-muted/50 hover:bg-muted'
                 }`}
                 onClick={() => setActiveSectionId(section.id)}
               >
-                <GripVertical className="w-4 h-4 text-gray-500" />
+                {/* Move buttons */}
+                <div className="flex flex-col gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSection(index, "up");
+                    }}
+                    disabled={index === 0}
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSection(index, "down");
+                    }}
+                    disabled={index === sections.length - 1}
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </div>
+
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{section.title_hu}</p>
-                  <p className="text-gray-400 text-xs">{section.image_urls?.length || 0} kép</p>
+                  <p className="text-foreground text-sm font-medium truncate">{section.title_hu}</p>
+                  <p className="text-muted-foreground text-xs">{section.image_urls?.length || 0} kép</p>
                 </div>
                 <Switch
                   checked={section.is_active}
@@ -196,21 +239,21 @@ export default function AboutAdmin() {
         </Card>
 
         {/* Section Editor */}
-        <Card className="lg:col-span-3 bg-gray-800/50 border-gray-700">
+        <Card className="lg:col-span-3 bg-card border-border">
           {activeSection ? (
             <>
               <CardHeader>
-                <CardTitle className="text-white text-lg">
+                <CardTitle className="text-foreground text-lg">
                   {activeSection.title_hu} szerkesztése
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Images */}
                 <div>
-                  <Label className="text-gray-300 mb-3 block">Képek (max. 4)</Label>
+                  <Label className="text-muted-foreground mb-3 block">Képek (max. 4)</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {(activeSection.image_urls || []).map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                         <img src={url} alt="" className="w-full h-full object-cover" />
                         <Button
                           type="button"
@@ -226,7 +269,7 @@ export default function AboutAdmin() {
                     
                     {(!activeSection.image_urls || activeSection.image_urls.length < 4) && (
                       <div 
-                        className="aspect-square rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors bg-gray-800/50"
+                        className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors bg-muted/50"
                         onClick={() => {
                           setUploadingFor(activeSection.id);
                           imageInputRef.current?.click();
@@ -236,8 +279,8 @@ export default function AboutAdmin() {
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                         ) : (
                           <>
-                            <Plus className="w-8 h-8 text-gray-500 mb-1" />
-                            <span className="text-xs text-gray-400">Kép hozzáadása</span>
+                            <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                            <span className="text-xs text-muted-foreground">Kép hozzáadása</span>
                           </>
                         )}
                       </div>
@@ -254,7 +297,7 @@ export default function AboutAdmin() {
 
                 {/* Content Editor */}
                 <Tabs defaultValue="hu" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+                  <TabsList className="grid w-full grid-cols-3 bg-muted">
                     <TabsTrigger value="hu">Magyar</TabsTrigger>
                     <TabsTrigger value="en">English</TabsTrigger>
                     <TabsTrigger value="es">Español</TabsTrigger>
@@ -262,19 +305,19 @@ export default function AboutAdmin() {
 
                   <TabsContent value="hu" className="space-y-4 mt-4">
                     <div>
-                      <Label className="text-gray-300">Cím (HU)</Label>
+                      <Label className="text-muted-foreground">Cím (HU)</Label>
                       <Input
                         value={activeSection.title_hu}
                         onChange={(e) => updateSection(activeSection.id, { title_hu: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Tartalom (HU)</Label>
+                      <Label className="text-muted-foreground">Tartalom (HU)</Label>
                       <Textarea
                         value={activeSection.content_hu}
                         onChange={(e) => updateSection(activeSection.id, { content_hu: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                         rows={8}
                         placeholder="Használj dupla sortörést új bekezdéshez..."
                       />
@@ -283,19 +326,19 @@ export default function AboutAdmin() {
 
                   <TabsContent value="en" className="space-y-4 mt-4">
                     <div>
-                      <Label className="text-gray-300">Title (EN)</Label>
+                      <Label className="text-muted-foreground">Title (EN)</Label>
                       <Input
                         value={activeSection.title_en}
                         onChange={(e) => updateSection(activeSection.id, { title_en: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Content (EN)</Label>
+                      <Label className="text-muted-foreground">Content (EN)</Label>
                       <Textarea
                         value={activeSection.content_en}
                         onChange={(e) => updateSection(activeSection.id, { content_en: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                         rows={8}
                       />
                     </div>
@@ -303,19 +346,19 @@ export default function AboutAdmin() {
 
                   <TabsContent value="es" className="space-y-4 mt-4">
                     <div>
-                      <Label className="text-gray-300">Título (ES)</Label>
+                      <Label className="text-muted-foreground">Título (ES)</Label>
                       <Input
                         value={activeSection.title_es}
                         onChange={(e) => updateSection(activeSection.id, { title_es: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                       />
                     </div>
                     <div>
-                      <Label className="text-gray-300">Contenido (ES)</Label>
+                      <Label className="text-muted-foreground">Contenido (ES)</Label>
                       <Textarea
                         value={activeSection.content_es}
                         onChange={(e) => updateSection(activeSection.id, { content_es: e.target.value })}
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-muted border-border text-foreground mt-1"
                         rows={8}
                       />
                     </div>
@@ -325,7 +368,7 @@ export default function AboutAdmin() {
             </>
           ) : (
             <CardContent className="flex items-center justify-center h-64">
-              <p className="text-gray-400">Válassz ki egy szekciót a szerkesztéshez</p>
+              <p className="text-muted-foreground">Válassz ki egy szekciót a szerkesztéshez</p>
             </CardContent>
           )}
         </Card>
