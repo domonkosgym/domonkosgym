@@ -126,9 +126,9 @@ export const FeaturedIn = () => {
           {/* Cards Container */}
           <div className="overflow-hidden">
             <div 
-              className="flex gap-2 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
+              className="flex gap-4 transition-transform duration-300 ease-out pb-2"
               style={{
-                transform: `translateX(-${currentIndex * (212 + 16)}px)`,
+                transform: `translateX(calc(-${currentIndex} * (25% + 0px)))`,
               }}
             >
               {links.map((link) => (
@@ -137,7 +137,7 @@ export const FeaturedIn = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 w-[152px] sm:w-[183px] md:w-[198px] lg:w-[212px] group"
+                  className="flex-shrink-0 w-[calc(25%-12px)] min-w-[152px] group"
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
                     {/* Cover Image - Square aspect ratio */}
