@@ -100,11 +100,6 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Főoldal Képek",
-    url: "/admin/site-images",
-    icon: Image,
-  },
-  {
     title: "Rólam oldal",
     url: "/admin/about",
     icon: User,
