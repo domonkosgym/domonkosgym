@@ -42,6 +42,14 @@ interface ShippingConfig {
   free_shipping_threshold: number | null;
 }
 
+interface ShippingProvider {
+  id: string;
+  name: string;
+  provider_type: string;
+  fee: number;
+  is_active: boolean;
+}
+
 export default function BookDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -49,9 +57,11 @@ export default function BookDetail() {
   
   const [product, setProduct] = useState<Product | null>(null);
   const [shippingConfig, setShippingConfig] = useState<ShippingConfig | null>(null);
+  const [shippingProviders, setShippingProviders] = useState<ShippingProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [shippingMethod, setShippingMethod] = useState<'HOME' | 'BOX'>('HOME');
+  const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -77,9 +87,10 @@ export default function BookDetail() {
     const fetchData = async () => {
       if (!id) return;
 
-      const [productRes, shippingRes] = await Promise.all([
+      const [productRes, shippingRes, providersRes] = await Promise.all([
         supabase.from('products').select('*').eq('id', id).maybeSingle(),
-        supabase.from('shipping_config').select('*').limit(1).maybeSingle()
+        supabase.from('shipping_config').select('*').limit(1).maybeSingle(),
+        supabase.from('shipping_providers').select('*').eq('is_active', true).order('sort_order')
       ]);
 
       if (productRes.data) {
@@ -87,6 +98,14 @@ export default function BookDetail() {
       }
       if (shippingRes.data) {
         setShippingConfig(shippingRes.data as ShippingConfig);
+      }
+      if (providersRes.data) {
+        setShippingProviders(providersRes.data as ShippingProvider[]);
+        // Set default provider
+        const homeProviders = providersRes.data.filter(p => p.provider_type === 'HOME');
+        if (homeProviders.length > 0) {
+          setSelectedProviderId(homeProviders[0].id);
+        }
       }
       setLoading(false);
     };
@@ -151,8 +170,17 @@ export default function BookDetail() {
     if (shippingConfig.free_shipping_threshold && subtotal >= shippingConfig.free_shipping_threshold) {
       return 0;
     }
+    // Get fee from selected provider
+    const selectedProvider = shippingProviders.find(p => p.id === selectedProviderId);
+    if (selectedProvider) {
+      return selectedProvider.fee;
+    }
+    // Fallback to config
     return shippingMethod === 'BOX' ? shippingConfig.box_fee : shippingConfig.base_fee;
   };
+
+  const homeProviders = shippingProviders.filter(p => p.provider_type === 'HOME');
+  const boxProviders = shippingProviders.filter(p => p.provider_type === 'BOX');
 
   const getTotalAmount = () => {
     return getUnitPrice() * quantity + getShippingFee();
@@ -628,7 +656,13 @@ export default function BookDetail() {
                     <Label className="mb-2 block">{labels.shippingMethod}</Label>
                     <RadioGroup
                       value={shippingMethod}
-                      onValueChange={(val) => setShippingMethod(val as 'HOME' | 'BOX')}
+                      onValueChange={(val) => {
+                        setShippingMethod(val as 'HOME' | 'BOX');
+                        const providers = val === 'HOME' ? homeProviders : boxProviders;
+                        if (providers.length > 0) {
+                          setSelectedProviderId(providers[0].id);
+                        }
+                      }}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -641,6 +675,49 @@ export default function BookDetail() {
                       </div>
                     </RadioGroup>
                   </div>
+
+                  {/* Provider Selection */}
+                  {shippingMethod === 'HOME' && homeProviders.length > 0 && (
+                    <div className="mb-4">
+                      <Label className="mb-2 block">Futárszolgálat</Label>
+                      <RadioGroup
+                        value={selectedProviderId}
+                        onValueChange={setSelectedProviderId}
+                        className="space-y-2"
+                      >
+                        {homeProviders.map((provider) => (
+                          <div key={provider.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value={provider.id} id={provider.id} />
+                              <Label htmlFor={provider.id} className="cursor-pointer">{provider.name}</Label>
+                            </div>
+                            <span className="text-primary font-medium">{formatPrice(provider.fee)}</span>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
+
+                  {shippingMethod === 'BOX' && boxProviders.length > 0 && (
+                    <div className="mb-4">
+                      <Label className="mb-2 block">Csomagpont szolgáltató</Label>
+                      <RadioGroup
+                        value={selectedProviderId}
+                        onValueChange={setSelectedProviderId}
+                        className="space-y-2"
+                      >
+                        {boxProviders.map((provider) => (
+                          <div key={provider.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value={provider.id} id={provider.id} />
+                              <Label htmlFor={provider.id} className="cursor-pointer">{provider.name}</Label>
+                            </div>
+                            <span className="text-primary font-medium">{formatPrice(provider.fee)}</span>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                  )}
 
                   {shippingMethod === 'HOME' ? (
                     <div className="space-y-4">
