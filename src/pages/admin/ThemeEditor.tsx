@@ -16,31 +16,61 @@ type ThemeSetting = {
   description: string | null;
 };
 
+// Helper to convert HSL CSS var to hex for color picker
+const hslToHex = (h: number, s: number, l: number): string => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+// Get current CSS variable values
+const getCurrentCSSValue = (varName: string): string => {
+  if (typeof window === 'undefined') return '';
+  const style = getComputedStyle(document.documentElement);
+  const value = style.getPropertyValue(`--${varName}`).trim();
+  if (!value) return '';
+  
+  // Parse HSL values like "48 100% 50%"
+  const hslMatch = value.match(/^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%?\s+(\d+(?:\.\d+)?)%?$/);
+  if (hslMatch) {
+    const h = parseFloat(hslMatch[1]);
+    const s = parseFloat(hslMatch[2]);
+    const l = parseFloat(hslMatch[3]);
+    return hslToHex(h, s, l);
+  }
+  return value;
+};
+
 const DEFAULT_THEME_SETTINGS = [
-  // Colors
-  { key: "color_primary", value: "#ea384c", description: "Elsődleges szín (pl. gombok, linkek)" },
-  { key: "color_secondary", value: "#1e293b", description: "Másodlagos szín" },
-  { key: "color_accent", value: "#f97316", description: "Kiemelő szín (akciók, badge-ek)" },
-  { key: "color_background", value: "#ffffff", description: "Háttérszín" },
-  { key: "color_foreground", value: "#0f172a", description: "Szövegszín" },
-  { key: "color_muted", value: "#f1f5f9", description: "Halvány háttér" },
-  { key: "color_muted_foreground", value: "#64748b", description: "Halvány szöveg" },
+  // Colors - using actual CSS variable values as defaults
+  { key: "color_primary", cssVar: "primary", value: "", description: "Elsődleges szín (pl. gombok, linkek)" },
+  { key: "color_secondary", cssVar: "secondary", value: "", description: "Másodlagos szín" },
+  { key: "color_accent", cssVar: "accent", value: "", description: "Kiemelő szín (akciók, badge-ek)" },
+  { key: "color_background", cssVar: "background", value: "", description: "Háttérszín" },
+  { key: "color_foreground", cssVar: "foreground", value: "", description: "Szövegszín" },
+  { key: "color_muted", cssVar: "muted", value: "", description: "Halvány háttér" },
+  { key: "color_muted_foreground", cssVar: "muted-foreground", value: "", description: "Halvány szöveg" },
   
   // Button styles
-  { key: "button_primary_bg", value: "#ea384c", description: "Elsődleges gomb háttér" },
-  { key: "button_primary_text", value: "#ffffff", description: "Elsődleges gomb szöveg" },
-  { key: "button_secondary_bg", value: "#1e293b", description: "Másodlagos gomb háttér" },
-  { key: "button_secondary_text", value: "#ffffff", description: "Másodlagos gomb szöveg" },
-  { key: "button_border_radius", value: "8", description: "Gomb lekerekítés (px)" },
+  { key: "button_primary_bg", cssVar: "primary", value: "", description: "Elsődleges gomb háttér" },
+  { key: "button_primary_text", cssVar: "primary-foreground", value: "", description: "Elsődleges gomb szöveg" },
+  { key: "button_secondary_bg", cssVar: "secondary", value: "", description: "Másodlagos gomb háttér" },
+  { key: "button_secondary_text", cssVar: "secondary-foreground", value: "", description: "Másodlagos gomb szöveg" },
+  { key: "button_border_radius", cssVar: null, value: "8", description: "Gomb lekerekítés (px)" },
   
   // Typography
-  { key: "font_family_heading", value: "Inter", description: "Címek betűtípus" },
-  { key: "font_family_body", value: "Inter", description: "Szövegtörzs betűtípus" },
-  { key: "font_size_base", value: "16", description: "Alap betűméret (px)" },
+  { key: "font_family_heading", cssVar: null, value: "Inter", description: "Címek betűtípus" },
+  { key: "font_family_body", cssVar: null, value: "Inter", description: "Szövegtörzs betűtípus" },
+  { key: "font_size_base", cssVar: null, value: "16", description: "Alap betűméret (px)" },
   
   // Spacing
-  { key: "section_padding", value: "80", description: "Szekciók belső margó (px)" },
-  { key: "container_max_width", value: "1280", description: "Tartalom max szélesség (px)" },
+  { key: "section_padding", cssVar: null, value: "80", description: "Szekciók belső margó (px)" },
+  { key: "container_max_width", cssVar: null, value: "1280", description: "Tartalom max szélesség (px)" },
 ];
 
 export default function ThemeEditor() {
@@ -96,7 +126,17 @@ export default function ThemeEditor() {
       for (const setting of DEFAULT_THEME_SETTINGS) {
         const existing = themeSettings?.find((s) => s.key === setting.key);
         if (!existing) {
-          const { error } = await supabase.from("theme_settings").insert(setting);
+          // Get current CSS value for initialization
+          let value = setting.value;
+          if (setting.cssVar) {
+            const cssValue = getCurrentCSSValue(setting.cssVar);
+            if (cssValue) value = cssValue;
+          }
+          const { error } = await supabase.from("theme_settings").insert({
+            key: setting.key,
+            value: value,
+            description: setting.description,
+          });
           if (error) throw error;
         }
       }
@@ -108,12 +148,20 @@ export default function ThemeEditor() {
   });
 
   const getValue = (key: string): string => {
+    // 1. Check if user has edited this value in the current session
     if (editedValues[key] !== undefined) {
       return editedValues[key];
     }
+    // 2. Check if there's a saved value in the database
     const setting = themeSettings?.find((s) => s.key === key);
     if (setting) return setting.value;
+    // 3. Get from actual CSS variable (live current value)
     const defaultSetting = DEFAULT_THEME_SETTINGS.find((s) => s.key === key);
+    if (defaultSetting?.cssVar) {
+      const cssValue = getCurrentCSSValue(defaultSetting.cssVar);
+      if (cssValue) return cssValue;
+    }
+    // 4. Fallback to default
     return defaultSetting?.value || "";
   };
 
