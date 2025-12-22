@@ -150,21 +150,21 @@ const AboutContent = () => {
                           <div 
                             key={imgIndex}
                             className={`rounded-2xl overflow-hidden shadow-xl ${
-                              section.image_urls.length === 1 ? 'aspect-[4/3]' : 
+                              section.image_urls.length === 1 ? 'aspect-[9/16] max-h-[500px]' : 
                               section.image_urls.length === 3 && imgIndex === 0 ? 'col-span-2 aspect-video' :
-                              'aspect-square'
+                              'aspect-[9/16]'
                             }`}
                           >
                             <img
                               src={url}
                               alt={`${getTitle(section)} ${imgIndex + 1}`}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                              className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500"
                             />
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <div className="aspect-[9/16] max-h-[400px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <Icon className="w-24 h-24 text-primary/30" />
                       </div>
                     )}

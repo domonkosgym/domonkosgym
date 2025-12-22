@@ -110,6 +110,25 @@ export default function LandingPageAdmin() {
 
     setUploadingFor(sectionId);
     
+    const section = sections.find(s => s.id === sectionId);
+    const isHeroOrProcess = section && (section.section_key === 'hero' || section.section_key === 'process');
+    
+    // Delete old images from storage if replacing (only for hero/process which have 1 image)
+    if (isHeroOrProcess && section?.image_urls && section.image_urls.length > 0) {
+      for (const oldUrl of section.image_urls) {
+        try {
+          // Extract path from URL
+          const urlParts = oldUrl.split('/book-covers/');
+          if (urlParts.length > 1) {
+            const oldPath = urlParts[1];
+            await supabase.storage.from('book-covers').remove([oldPath]);
+          }
+        } catch (err) {
+          console.error('Error deleting old image:', err);
+        }
+      }
+    }
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `landing-${sectionId}-${Date.now()}.${fileExt}`;
     const filePath = `landing/${fileName}`;
@@ -129,9 +148,9 @@ export default function LandingPageAdmin() {
       .from('book-covers')
       .getPublicUrl(filePath);
 
-    const section = sections.find(s => s.id === sectionId);
     if (section) {
-      const newImages = [...(section.image_urls || []), publicUrl];
+      // For hero and process: replace single image; for others: add to array
+      const newImages = isHeroOrProcess ? [publicUrl] : [...(section.image_urls || []), publicUrl];
       updateSection(sectionId, { image_urls: newImages });
     }
     
@@ -143,9 +162,22 @@ export default function LandingPageAdmin() {
     }
   };
 
-  const removeImage = (sectionId: string, imageIndex: number) => {
+  const removeImage = async (sectionId: string, imageIndex: number) => {
     const section = sections.find(s => s.id === sectionId);
     if (section) {
+      const imageUrl = section.image_urls[imageIndex];
+      
+      // Delete from storage
+      try {
+        const urlParts = imageUrl.split('/book-covers/');
+        if (urlParts.length > 1) {
+          const oldPath = urlParts[1];
+          await supabase.storage.from('book-covers').remove([oldPath]);
+        }
+      } catch (err) {
+        console.error('Error deleting image from storage:', err);
+      }
+      
       const newImages = section.image_urls.filter((_, i) => i !== imageIndex);
       updateSection(sectionId, { image_urls: newImages });
     }
@@ -739,52 +771,56 @@ export default function LandingPageAdmin() {
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Images */}
-                <div>
-                  <Label className="text-muted-foreground mb-3 block">Képek (max. 4)</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(activeSection.image_urls || []).map((url, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img src={url} alt="" className="w-full h-full object-cover object-center" />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2 h-7 w-7"
-                          onClick={() => removeImage(activeSection.id, index)}
+                {/* Images - Only show for hero and process sections */}
+                {(activeSection.section_key === 'hero' || activeSection.section_key === 'process') && (
+                  <div>
+                    <Label className="text-muted-foreground mb-3 block">
+                      Szekció kép (1 kép)
+                    </Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {(activeSection.image_urls || []).slice(0, 1).map((url, index) => (
+                        <div key={index} className="relative aspect-video rounded-lg overflow-hidden bg-muted col-span-2">
+                          <img src={url} alt="" className="w-full h-full object-cover object-center" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-7 w-7"
+                            onClick={() => removeImage(activeSection.id, index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      
+                      {(!activeSection.image_urls || activeSection.image_urls.length === 0) && (
+                        <div 
+                          className="aspect-video rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors bg-muted/50 col-span-2"
+                          onClick={() => {
+                            setUploadingFor(activeSection.id);
+                            imageInputRef.current?.click();
+                          }}
                         >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    {(!activeSection.image_urls || activeSection.image_urls.length < 4) && (
-                      <div 
-                        className="aspect-square rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-muted-foreground transition-colors bg-muted/50"
-                        onClick={() => {
-                          setUploadingFor(activeSection.id);
-                          imageInputRef.current?.click();
-                        }}
-                      >
-                        {uploadingFor === activeSection.id ? (
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                        ) : (
-                          <>
-                            <Plus className="w-8 h-8 text-muted-foreground mb-1" />
-                            <span className="text-xs text-muted-foreground">Kép hozzáadása</span>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          {uploadingFor === activeSection.id ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          ) : (
+                            <>
+                              <Plus className="w-8 h-8 text-muted-foreground mb-1" />
+                              <span className="text-xs text-muted-foreground">Kép hozzáadása</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => uploadingFor && handleImageUpload(e, uploadingFor)}
+                      className="hidden"
+                    />
                   </div>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => uploadingFor && handleImageUpload(e, uploadingFor)}
-                    className="hidden"
-                  />
-                </div>
+                )}
 
                 {/* Content Editor based on section type */}
                 {activeSection.section_key === 'hero' && renderHeroEditor(activeSection)}
