@@ -126,32 +126,48 @@ export const BooksSection = () => {
 
         {/* Carousel Container */}
         <div className="relative">
-          {/* Navigation Arrows */}
+          {/* Navigation Arrows - Desktop only */}
           {products.length > 4 && (
             <>
               <button
                 onClick={scrollLeft}
                 disabled={currentIndex === 0}
-                className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
+                className="hidden lg:flex absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={scrollRight}
                 disabled={currentIndex >= products.length - 4}
-                className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
+                className="hidden lg:flex absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </>
           )}
 
-          {/* Cards Container */}
-          <div className="overflow-hidden">
+          {/* Cards Container - Touch scrollable on mobile/tablet */}
+          <div 
+            className="overflow-x-auto lg:overflow-hidden scrollbar-hide pb-4"
+            style={{ 
+              scrollbarWidth: 'none', 
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}
+            onScroll={(e) => {
+              const target = e.target as HTMLDivElement;
+              const scrollLeft = target.scrollLeft;
+              const cardWidth = 152; // approximate card width + gap
+              const newIndex = Math.round(scrollLeft / cardWidth);
+              if (newIndex !== currentIndex) {
+                setCurrentIndex(newIndex);
+              }
+            }}
+          >
             <div 
-              className="flex gap-3 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
+              className="flex gap-3 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out lg:transition-transform"
               style={{
-                transform: `translateX(-${currentIndex * (140 + 12)}px)`,
+                transform: window.innerWidth >= 1024 ? `translateX(-${currentIndex * (193 + 16)}px)` : 'none',
               }}
             >
               {products.map((product) => (
@@ -243,16 +259,17 @@ export const BooksSection = () => {
                   </div>
                 </div>
               ))}
+              {/* Spacer to ensure last item is fully visible */}
+              <div className="flex-shrink-0 w-4 lg:hidden" aria-hidden="true" />
             </div>
           </div>
 
-          {/* Mobile Scroll Hint */}
+          {/* Mobile/Tablet Scroll Indicator */}
           {products.length > 1 && (
-            <div className="flex justify-center gap-1.5 mt-3 md:hidden">
+            <div className="flex justify-center gap-1.5 mt-3 lg:hidden">
               {products.map((_, index) => (
-                <button
+                <div
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
                     currentIndex === index ? 'bg-primary scale-125' : 'bg-muted-foreground/30'
                   }`}
