@@ -442,6 +442,36 @@ export type Database = {
           },
         ]
       }
+      domains: {
+        Row: {
+          created_at: string | null
+          domain_name: string
+          id: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          notes: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          domain_name: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          domain_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       email_attachments: {
         Row: {
           campaign_id: string | null
