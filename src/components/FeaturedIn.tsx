@@ -129,11 +129,11 @@ export const FeaturedIn = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 w-[138px] sm:w-[166px] md:w-[180px] lg:w-[193px] group"
+                  className="flex-shrink-0 w-[152px] sm:w-[183px] md:w-[198px] lg:w-[212px] group"
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
-                    {/* Cover Image - 16:9 aspect ratio for links */}
-                    <div className="relative aspect-video bg-muted overflow-hidden flex-shrink-0">
+                    {/* Cover Image - Square aspect ratio */}
+                    <div className="relative aspect-square bg-muted overflow-hidden flex-shrink-0">
                       {link.is_youtube ? (
                         <div className="w-full h-full flex items-center justify-center bg-red-600">
                           <svg className="w-10 h-10 sm:w-12 sm:h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -161,11 +161,11 @@ export const FeaturedIn = () => {
 
                     {/* Content */}
                     <div className="p-2 sm:p-2.5 flex flex-col flex-grow">
-                      <h3 className="font-bold text-[9px] sm:text-[10px] md:text-[11px] text-foreground mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                      <h3 className="font-bold text-[10px] sm:text-[11px] md:text-[12px] text-foreground mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
                         {getTitle(link)}
                       </h3>
                       {getDescription(link) && (
-                        <p className="text-[8px] sm:text-[9px] text-muted-foreground line-clamp-2">
+                        <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-2">
                           {getDescription(link)}
                         </p>
                       )}
