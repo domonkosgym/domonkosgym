@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Footer } from "@/components/Footer";
-import { LanguageSelector } from "@/components/LanguageSelector";
+import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Service {
@@ -73,41 +73,16 @@ export default function Services() {
   };
 
   const handleFreeConsultation = () => {
-    // Navigate to checkout with free consultation slug
     navigate("/checkout/free-consultation");
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="flex justify-between items-center px-2 sm:px-4 md:px-12 py-3 md:py-6 border-b border-border gap-2">
-        <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
-          <a href="/" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.home')}</a>
-          <a href="/#about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
-          <a href="/services" className="text-primary text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-bold whitespace-nowrap">{t('nav.services')}</a>
-          {/* Foglalj helyet button on mobile and tablet */}
-          <Button
-            onClick={handleFreeConsultation}
-            className="lg:hidden bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[10px] sm:text-xs px-2 sm:px-4 whitespace-nowrap h-7 sm:h-8"
-          >
-            {t('hero.reserveSpot')}
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2 sm:gap-4">
-          <LanguageSelector />
-          {/* Desktop button */}
-          <Button
-            onClick={handleFreeConsultation}
-            className="hidden lg:block bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-xs sm:text-sm px-4 sm:px-6 whitespace-nowrap"
-          >
-            {t('hero.reserveSpot')}
-          </Button>
-        </div>
-      </nav>
+      {/* Unified Header */}
+      <Header onCtaClick={handleFreeConsultation} />
 
       {/* Services Content */}
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-12 sm:py-16 md:py-20 lg:py-24">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 pt-20 md:pt-24 py-12 sm:py-16 md:py-20 lg:py-24">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground uppercase mb-3 sm:mb-4 md:mb-6 text-center">
           {t('services.title')}
         </h1>

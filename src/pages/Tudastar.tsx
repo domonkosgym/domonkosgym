@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Package, ArrowLeft } from "lucide-react";
+import { BookOpen, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { CartIcon } from "@/components/CartIcon";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 interface Product {
@@ -107,32 +106,11 @@ export default function Tudastar() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4 md:gap-8">
-            <Link to="/" className="text-foreground text-xs md:text-sm uppercase tracking-wider hover:text-primary transition">
-              {t('nav.home')}
-            </Link>
-            <Link to="/about" className="text-foreground text-xs md:text-sm uppercase tracking-wider hover:text-primary transition">
-              {t('nav.about')}
-            </Link>
-            <Link to="/services" className="text-foreground text-xs md:text-sm uppercase tracking-wider hover:text-primary transition">
-              {t('nav.services')}
-            </Link>
-            <Link to="/tudastar" className="text-primary text-xs md:text-sm uppercase tracking-wider font-bold">
-              {t('nav.knowledge')}
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <LanguageSelector />
-            <CartIcon />
-          </div>
-        </div>
-      </nav>
+      {/* Unified Header */}
+      <Header />
 
-      {/* Header */}
-      <div className="bg-gradient-to-b from-primary/10 to-background py-12 md:py-16">
+      {/* Page Header */}
+      <div className="pt-20 md:pt-24 bg-gradient-to-b from-primary/10 to-background py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">

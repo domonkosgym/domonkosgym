@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Award, Target, Heart, History } from "lucide-react";
+import { Award, Target, Heart, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { LanguageSelector } from "@/components/LanguageSelector";
+import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 interface AboutSection {
@@ -77,20 +76,8 @@ const AboutContent = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('nav.home')}
-          </Button>
-          <LanguageSelector />
-        </div>
-      </header>
+      {/* Unified Header */}
+      <Header />
 
       {/* Hero Section */}
       <section className="pt-24 pb-16 bg-gradient-to-b from-primary/10 to-background">
@@ -189,12 +176,18 @@ const AboutContent = () => {
                 : "Get in touch and let's start your journey to a better you together!"}
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate('/services')} className="text-lg px-8">
+              <button 
+                onClick={() => navigate('/services')} 
+                className="text-lg px-8 py-3 bg-primary text-primary-foreground font-bold rounded-md hover:bg-primary/90 transition"
+              >
                 {language === 'hu' ? 'Szolgáltatások' : language === 'es' ? 'Servicios' : 'Services'}
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/')} className="text-lg px-8">
+              </button>
+              <button 
+                onClick={() => navigate('/')} 
+                className="text-lg px-8 py-3 border border-border text-foreground font-bold rounded-md hover:bg-muted transition"
+              >
                 {language === 'hu' ? 'Kapcsolat' : language === 'es' ? 'Contacto' : 'Contact'}
-              </Button>
+              </button>
             </div>
           </div>
         </section>
