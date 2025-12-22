@@ -833,15 +833,6 @@ export default function ProductsAdmin() {
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-gray-300">Részlet (HU)</Label>
-                  <Textarea
-                    value={productFormData.excerpt_hu || ''}
-                    onChange={(e) => setProductFormData({ ...productFormData, excerpt_hu: e.target.value })}
-                    rows={3}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
               </div>
             </TabsContent>
 
@@ -872,15 +863,6 @@ export default function ProductsAdmin() {
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
-                <div>
-                  <Label className="text-gray-300">Excerpt (EN)</Label>
-                  <Textarea
-                    value={productFormData.excerpt_en || ''}
-                    onChange={(e) => setProductFormData({ ...productFormData, excerpt_en: e.target.value })}
-                    rows={3}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
               </div>
             </TabsContent>
 
@@ -908,15 +890,6 @@ export default function ProductsAdmin() {
                     value={productFormData.description_es}
                     onChange={(e) => setProductFormData({ ...productFormData, description_es: e.target.value })}
                     rows={4}
-                    className="bg-gray-800 border-gray-700 text-white"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Extracto (ES)</Label>
-                  <Textarea
-                    value={productFormData.excerpt_es || ''}
-                    onChange={(e) => setProductFormData({ ...productFormData, excerpt_es: e.target.value })}
-                    rows={3}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
