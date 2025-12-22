@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, BookOpen, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,27 +29,6 @@ export const BooksSection = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  // Fetch section title/subtitle from landing_page_sections (same as Tudastar page)
-  const { data: sectionData } = useQuery({
-    queryKey: ["books-section", language],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('landing_page_sections')
-        .select('title_hu, title_en, title_es, subtitle_hu, subtitle_en, subtitle_es')
-        .eq('section_key', 'books')
-        .maybeSingle();
-
-      if (error || !data) return { title: t('books.title'), subtitle: t('books.subtitle') };
-
-      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
-      return {
-        title: (data[`title${langSuffix}` as keyof typeof data] as string) || t('books.title'),
-        subtitle: data[`subtitle${langSuffix}` as keyof typeof data] as string | null
-      };
-    },
-    staleTime: 0,
-  });
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -102,8 +80,8 @@ export const BooksSection = () => {
     setCurrentIndex(Math.min(products.length - 1, currentIndex + 1));
   };
 
-  const getSectionTitle = () => sectionData?.title || t('books.title');
-  const getSectionSubtitle = () => sectionData?.subtitle || t('books.subtitle');
+  const getSectionTitle = () => t('books.title');
+  const getSectionSubtitle = () => t('books.subtitle');
   const getTypeLabel = (type: 'DIGITAL' | 'PHYSICAL') => {
     return type === 'DIGITAL' ? t('books.digital') : t('books.physical');
   };
