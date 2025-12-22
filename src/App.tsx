@@ -33,6 +33,7 @@ import ThemeEditor from "./pages/admin/ThemeEditor";
 import FeaturedLinksAdmin from "./pages/admin/FeaturedLinksAdmin";
 import ProcessStepsAdmin from "./pages/admin/ProcessStepsAdmin";
 import AboutAdmin from "./pages/admin/AboutAdmin";
+import SiteImagesAdmin from "./pages/admin/SiteImagesAdmin";
 import About from "./pages/About";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -79,6 +80,7 @@ const App = () => (
               <Route path="featured-links" element={<FeaturedLinksAdmin />} />
               <Route path="process-steps" element={<ProcessStepsAdmin />} />
               <Route path="about" element={<AboutAdmin />} />
+              <Route path="site-images" element={<SiteImagesAdmin />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />

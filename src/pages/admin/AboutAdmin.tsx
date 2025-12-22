@@ -6,58 +6,66 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, Upload, X, ImageIcon, User } from "lucide-react";
+import { Save, Upload, X, ImageIcon, GripVertical, Plus } from "lucide-react";
 
-interface AboutPageData {
+interface AboutSection {
   id: string;
+  section_key: string;
   title_hu: string;
   title_en: string;
   title_es: string;
-  subtitle_hu: string | null;
-  subtitle_en: string | null;
-  subtitle_es: string | null;
   content_hu: string;
   content_en: string;
   content_es: string;
-  image_url: string | null;
+  image_urls: string[];
+  sort_order: number;
+  is_active: boolean;
 }
 
 export default function AboutAdmin() {
-  const [data, setData] = useState<AboutPageData | null>(null);
+  const [sections, setSections] = useState<AboutSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadData();
+    loadSections();
   }, []);
 
-  const loadData = async () => {
-    const { data: aboutData, error } = await supabase
-      .from("about_page")
+  const loadSections = async () => {
+    const { data, error } = await supabase
+      .from("about_sections")
       .select("*")
-      .limit(1)
-      .maybeSingle();
+      .order("sort_order");
 
     if (error) {
       console.error(error);
       toast.error("Hiba az adatok betöltésekor");
-    } else if (aboutData) {
-      setData(aboutData);
+    } else if (data) {
+      setSections(data);
+      if (data.length > 0 && !activeSectionId) {
+        setActiveSectionId(data[0].id);
+      }
     }
     setLoading(false);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !data) return;
+  const updateSection = (id: string, updates: Partial<AboutSection>) => {
+    setSections(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
 
-    setUploadingImage(true);
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, sectionId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFor(sectionId);
     
     const fileExt = file.name.split('.').pop();
-    const fileName = `about-${Date.now()}.${fileExt}`;
+    const fileName = `about-${sectionId}-${Date.now()}.${fileExt}`;
     const filePath = `about/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
@@ -67,7 +75,7 @@ export default function AboutAdmin() {
     if (uploadError) {
       toast.error('Hiba a kép feltöltésekor');
       console.error(uploadError);
-      setUploadingImage(false);
+      setUploadingFor(null);
       return;
     }
 
@@ -75,47 +83,61 @@ export default function AboutAdmin() {
       .from('book-covers')
       .getPublicUrl(filePath);
 
-    setData({ ...data, image_url: publicUrl });
-    setUploadingImage(false);
+    const section = sections.find(s => s.id === sectionId);
+    if (section) {
+      const newImages = [...(section.image_urls || []), publicUrl];
+      updateSection(sectionId, { image_urls: newImages });
+    }
+    
+    setUploadingFor(null);
     toast.success('Kép feltöltve');
+    
+    // Reset input
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   };
 
-  const handleRemoveImage = () => {
-    if (data) {
-      setData({ ...data, image_url: null });
+  const removeImage = (sectionId: string, imageIndex: number) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (section) {
+      const newImages = section.image_urls.filter((_, i) => i !== imageIndex);
+      updateSection(sectionId, { image_urls: newImages });
     }
   };
 
   const handleSave = async () => {
-    if (!data) return;
-
     setSaving(true);
 
-    const { error } = await supabase
-      .from("about_page")
-      .update({
-        title_hu: data.title_hu,
-        title_en: data.title_en,
-        title_es: data.title_es,
-        subtitle_hu: data.subtitle_hu,
-        subtitle_en: data.subtitle_en,
-        subtitle_es: data.subtitle_es,
-        content_hu: data.content_hu,
-        content_en: data.content_en,
-        content_es: data.content_es,
-        image_url: data.image_url,
-      })
-      .eq("id", data.id);
+    for (const section of sections) {
+      const { error } = await supabase
+        .from("about_sections")
+        .update({
+          title_hu: section.title_hu,
+          title_en: section.title_en,
+          title_es: section.title_es,
+          content_hu: section.content_hu,
+          content_en: section.content_en,
+          content_es: section.content_es,
+          image_urls: section.image_urls,
+          is_active: section.is_active,
+          sort_order: section.sort_order,
+        })
+        .eq("id", section.id);
 
-    if (error) {
-      toast.error("Hiba a mentéskor");
-      console.error(error);
-    } else {
-      toast.success("Rólam oldal mentve");
+      if (error) {
+        toast.error(`Hiba a mentéskor: ${section.title_hu}`);
+        console.error(error);
+        setSaving(false);
+        return;
+      }
     }
 
+    toast.success("Rólam oldal mentve");
     setSaving(false);
   };
+
+  const activeSection = sections.find(s => s.id === activeSectionId);
 
   if (loading) {
     return (
@@ -128,178 +150,184 @@ export default function AboutAdmin() {
     );
   }
 
-  if (!data) {
-    return (
-      <div className="p-6">
-        <Card className="bg-gray-800/50 border-gray-700 p-8 text-center">
-          <User className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-          <p className="text-gray-400">Nincs Rólam oldal adat</p>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Rólam Oldal</h1>
-          <p className="text-gray-400 mt-1">A személyi edző bemutatkozó oldalának szerkesztése</p>
+          <h1 className="text-2xl font-bold text-white">Rólam Oldal Szekciók</h1>
+          <p className="text-gray-400 mt-1">Szerkeszd a Rólam oldal különböző szekciót</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90">
           <Save className="w-4 h-4 mr-2" />
-          {saving ? "Mentés..." : "Mentés"}
+          {saving ? "Mentés..." : "Összes mentése"}
         </Button>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Profile Image */}
+      <div className="grid lg:grid-cols-4 gap-6">
+        {/* Sections List */}
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Profilkép</CardTitle>
+            <CardTitle className="text-white text-lg">Szekciók</CardTitle>
           </CardHeader>
-          <CardContent>
-            {data.image_url ? (
-              <div className="relative aspect-[3/4] rounded-lg overflow-hidden bg-gray-800">
-                <img 
-                  src={data.image_url} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={handleRemoveImage}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div 
-                className="aspect-[3/4] rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors bg-gray-800/50"
-                onClick={() => imageInputRef.current?.click()}
+          <CardContent className="space-y-2">
+            {sections.map((section) => (
+              <div
+                key={section.id}
+                className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-colors ${
+                  activeSectionId === section.id 
+                    ? 'bg-primary/20 border border-primary/50' 
+                    : 'bg-gray-700/50 hover:bg-gray-700'
+                }`}
+                onClick={() => setActiveSectionId(section.id)}
               >
-                {uploadingImage ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                ) : (
-                  <>
-                    <ImageIcon className="w-12 h-12 text-gray-500 mb-2" />
-                    <span className="text-sm text-gray-400">Kattints a feltöltéshez</span>
-                  </>
-                )}
+                <GripVertical className="w-4 h-4 text-gray-500" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{section.title_hu}</p>
+                  <p className="text-gray-400 text-xs">{section.image_urls?.length || 0} kép</p>
+                </div>
+                <Switch
+                  checked={section.is_active}
+                  onCheckedChange={(checked) => updateSection(section.id, { is_active: checked })}
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
-            )}
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
+            ))}
           </CardContent>
         </Card>
 
-        {/* Content Editor */}
-        <Card className="lg:col-span-2 bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white text-lg">Tartalom</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="hu" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-gray-800">
-                <TabsTrigger value="hu">Magyar</TabsTrigger>
-                <TabsTrigger value="en">English</TabsTrigger>
-                <TabsTrigger value="es">Español</TabsTrigger>
-              </TabsList>
+        {/* Section Editor */}
+        <Card className="lg:col-span-3 bg-gray-800/50 border-gray-700">
+          {activeSection ? (
+            <>
+              <CardHeader>
+                <CardTitle className="text-white text-lg">
+                  {activeSection.title_hu} szerkesztése
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Images */}
+                <div>
+                  <Label className="text-gray-300 mb-3 block">Képek (max. 4)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {(activeSection.image_urls || []).map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-7 w-7"
+                          onClick={() => removeImage(activeSection.id, index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    
+                    {(!activeSection.image_urls || activeSection.image_urls.length < 4) && (
+                      <div 
+                        className="aspect-square rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors bg-gray-800/50"
+                        onClick={() => {
+                          setUploadingFor(activeSection.id);
+                          imageInputRef.current?.click();
+                        }}
+                      >
+                        {uploadingFor === activeSection.id ? (
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        ) : (
+                          <>
+                            <Plus className="w-8 h-8 text-gray-500 mb-1" />
+                            <span className="text-xs text-gray-400">Kép hozzáadása</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => uploadingFor && handleImageUpload(e, uploadingFor)}
+                    className="hidden"
+                  />
+                </div>
 
-              <TabsContent value="hu" className="space-y-4 mt-4">
-                <div>
-                  <Label className="text-gray-300">Cím (HU)</Label>
-                  <Input
-                    value={data.title_hu}
-                    onChange={(e) => setData({ ...data, title_hu: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Alcím (HU)</Label>
-                  <Input
-                    value={data.subtitle_hu || ''}
-                    onChange={(e) => setData({ ...data, subtitle_hu: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="pl. Táplálkozási és teljesítmény-coach"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Bemutatkozás (HU)</Label>
-                  <Textarea
-                    value={data.content_hu}
-                    onChange={(e) => setData({ ...data, content_hu: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    rows={10}
-                  />
-                </div>
-              </TabsContent>
+                {/* Content Editor */}
+                <Tabs defaultValue="hu" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+                    <TabsTrigger value="hu">Magyar</TabsTrigger>
+                    <TabsTrigger value="en">English</TabsTrigger>
+                    <TabsTrigger value="es">Español</TabsTrigger>
+                  </TabsList>
 
-              <TabsContent value="en" className="space-y-4 mt-4">
-                <div>
-                  <Label className="text-gray-300">Title (EN)</Label>
-                  <Input
-                    value={data.title_en}
-                    onChange={(e) => setData({ ...data, title_en: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Subtitle (EN)</Label>
-                  <Input
-                    value={data.subtitle_en || ''}
-                    onChange={(e) => setData({ ...data, subtitle_en: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Content (EN)</Label>
-                  <Textarea
-                    value={data.content_en}
-                    onChange={(e) => setData({ ...data, content_en: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    rows={10}
-                  />
-                </div>
-              </TabsContent>
+                  <TabsContent value="hu" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-gray-300">Cím (HU)</Label>
+                      <Input
+                        value={activeSection.title_hu}
+                        onChange={(e) => updateSection(activeSection.id, { title_hu: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Tartalom (HU)</Label>
+                      <Textarea
+                        value={activeSection.content_hu}
+                        onChange={(e) => updateSection(activeSection.id, { content_hu: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        rows={8}
+                        placeholder="Használj dupla sortörést új bekezdéshez..."
+                      />
+                    </div>
+                  </TabsContent>
 
-              <TabsContent value="es" className="space-y-4 mt-4">
-                <div>
-                  <Label className="text-gray-300">Título (ES)</Label>
-                  <Input
-                    value={data.title_es}
-                    onChange={(e) => setData({ ...data, title_es: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Subtítulo (ES)</Label>
-                  <Input
-                    value={data.subtitle_es || ''}
-                    onChange={(e) => setData({ ...data, subtitle_es: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-gray-300">Contenido (ES)</Label>
-                  <Textarea
-                    value={data.content_es}
-                    onChange={(e) => setData({ ...data, content_es: e.target.value })}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    rows={10}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
+                  <TabsContent value="en" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-gray-300">Title (EN)</Label>
+                      <Input
+                        value={activeSection.title_en}
+                        onChange={(e) => updateSection(activeSection.id, { title_en: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Content (EN)</Label>
+                      <Textarea
+                        value={activeSection.content_en}
+                        onChange={(e) => updateSection(activeSection.id, { content_en: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        rows={8}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="es" className="space-y-4 mt-4">
+                    <div>
+                      <Label className="text-gray-300">Título (ES)</Label>
+                      <Input
+                        value={activeSection.title_es}
+                        onChange={(e) => updateSection(activeSection.id, { title_es: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300">Contenido (ES)</Label>
+                      <Textarea
+                        value={activeSection.content_es}
+                        onChange={(e) => updateSection(activeSection.id, { content_es: e.target.value })}
+                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        rows={8}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </>
+          ) : (
+            <CardContent className="flex items-center justify-center h-64">
+              <p className="text-gray-400">Válassz ki egy szekciót a szerkesztéshez</p>
+            </CardContent>
+          )}
         </Card>
       </div>
     </div>

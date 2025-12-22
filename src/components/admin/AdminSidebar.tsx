@@ -1,4 +1,4 @@
-import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit, ExternalLink, ListOrdered, User } from "lucide-react";
+import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit, ExternalLink, ListOrdered, User, Image } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -68,6 +68,11 @@ const menuItems = [
     title: "Hogyan Működik",
     url: "/admin/process-steps",
     icon: ListOrdered,
+  },
+  {
+    title: "Főoldal Képek",
+    url: "/admin/site-images",
+    icon: Image,
   },
   {
     title: "Rólam oldal",
