@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContactsTab } from "@/components/email/ContactsTab";
 import { CampaignsTab } from "@/components/email/CampaignsTab";
 import { SingleEmailTab } from "@/components/email/SingleEmailTab";
+import { AutomaticEmailsTab } from "@/components/email/AutomaticEmailsTab";
 
 export default function EmailManagement() {
   return (
@@ -14,10 +15,11 @@ export default function EmailManagement() {
       </div>
 
       <Tabs defaultValue="contacts" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="contacts">Címzettek</TabsTrigger>
           <TabsTrigger value="campaigns">Körlevelek</TabsTrigger>
           <TabsTrigger value="single">Egyéni üzenet</TabsTrigger>
+          <TabsTrigger value="automatic">Automata üzenetek</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contacts">
@@ -30,6 +32,10 @@ export default function EmailManagement() {
 
         <TabsContent value="single">
           <SingleEmailTab />
+        </TabsContent>
+
+        <TabsContent value="automatic">
+          <AutomaticEmailsTab />
         </TabsContent>
       </Tabs>
     </div>

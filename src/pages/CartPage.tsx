@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Package, Download } from "lucide-react";
 import { Footer } from "@/components/Footer";
@@ -51,6 +52,7 @@ export default function CartPage() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [boxProvider, setBoxProvider] = useState('');
   const [boxPointId, setBoxPointId] = useState('');
+  const [boxPointLabel, setBoxPointLabel] = useState('');
   
   // Billing address
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
@@ -74,8 +76,10 @@ export default function CartPage() {
       }
       if (providersRes.data) {
         setShippingProviders(providersRes.data);
-        if (providersRes.data.length > 0) {
-          setSelectedProviderId(providersRes.data[0].id);
+        // Set first home provider as default
+        const homeProviders = providersRes.data.filter(p => p.provider_type === 'HOME');
+        if (homeProviders.length > 0) {
+          setSelectedProviderId(homeProviders[0].id);
         }
       }
     };
@@ -83,7 +87,10 @@ export default function CartPage() {
     if (hasPhysicalItems()) {
       fetchShippingData();
     }
-  }, [hasPhysicalItems]);
+  }, []);
+  
+  const homeProviders = shippingProviders.filter(p => p.provider_type === 'HOME');
+  const boxProviders = shippingProviders.filter(p => p.provider_type === 'BOX');
   
   const getShippingFee = () => {
     if (!hasPhysicalItems()) return 0;
@@ -93,12 +100,8 @@ export default function CartPage() {
       return 0;
     }
     
-    if (shippingMethod === 'BOX') {
-      return shippingConfig?.box_fee || 0;
-    }
-    
     const selectedProvider = shippingProviders.find(p => p.id === selectedProviderId);
-    return selectedProvider?.fee || shippingConfig?.base_fee || 0;
+    return selectedProvider?.fee || 0;
   };
   
   const getTotal = () => {
@@ -107,6 +110,11 @@ export default function CartPage() {
   
   const formatPrice = (amount: number) => {
     return `${amount.toLocaleString('hu-HU')} Ft`;
+  };
+  
+  const getSelectedProviderName = () => {
+    const provider = shippingProviders.find(p => p.id === selectedProviderId);
+    return provider?.name || '';
   };
 
   const handleSubmit = async () => {
@@ -123,6 +131,13 @@ export default function CartPage() {
       }
     }
     
+    if (hasPhysicalItems() && shippingMethod === 'BOX') {
+      if (!boxProvider.trim() || !boxPointId.trim()) {
+        toast.error('Kérlek add meg a csomagpont adatait!');
+        return;
+      }
+    }
+    
     if (!billingSameAsShipping) {
       if (!billingPostalCode.trim() || !billingCity.trim() || !billingAddress.trim()) {
         toast.error('Kérlek add meg a számlázási címet!');
@@ -135,6 +150,7 @@ export default function CartPage() {
     try {
       const total = getTotal();
       const shippingAmount = getShippingFee();
+      const providerName = getSelectedProviderName();
       
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -146,15 +162,16 @@ export default function CartPage() {
           total_amount: total,
           shipping_amount: shippingAmount,
           shipping_method: hasPhysicalItems() ? shippingMethod : 'NONE',
-          shipping_country: hasPhysicalItems() ? shippingCountry : null,
-          shipping_postal_code: hasPhysicalItems() ? shippingPostalCode : null,
-          shipping_city: hasPhysicalItems() ? shippingCity : null,
-          shipping_address: hasPhysicalItems() ? shippingAddress : null,
-          box_provider: shippingMethod === 'BOX' ? boxProvider : null,
+          shipping_country: hasPhysicalItems() && shippingMethod === 'HOME' ? shippingCountry : null,
+          shipping_postal_code: hasPhysicalItems() && shippingMethod === 'HOME' ? shippingPostalCode : null,
+          shipping_city: hasPhysicalItems() && shippingMethod === 'HOME' ? shippingCity : null,
+          shipping_address: hasPhysicalItems() && shippingMethod === 'HOME' ? shippingAddress : null,
+          box_provider: shippingMethod === 'BOX' ? boxProvider : (shippingMethod === 'HOME' ? providerName : null),
           box_point_id: shippingMethod === 'BOX' ? boxPointId : null,
+          box_point_label: shippingMethod === 'BOX' ? boxPointLabel : null,
           billing_same_as_shipping: billingSameAsShipping,
           billing_name: billingSameAsShipping ? customerName : billingName,
-          billing_country: billingSameAsShipping ? shippingCountry : billingCountry,
+          billing_country: billingSameAsShipping ? (hasPhysicalItems() ? shippingCountry : 'Magyarország') : billingCountry,
           billing_postal_code: billingSameAsShipping ? shippingPostalCode : billingPostalCode,
           billing_city: billingSameAsShipping ? shippingCity : billingCity,
           billing_address: billingSameAsShipping ? shippingAddress : billingAddress,
@@ -251,9 +268,9 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="flex justify-between items-center px-4 md:px-12 py-4">
-        <Button variant="ghost" onClick={() => navigate('/')} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => navigate('/#books')} className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Vissza
+          Vissza a könyvekhez
         </Button>
         <div className="flex items-center gap-2">
           <LanguageSelector />
@@ -388,19 +405,44 @@ export default function CartPage() {
             {hasPhysicalItems() && (
               <Card className="p-6">
                 <h2 className="font-bold mb-4">Szállítás</h2>
-                <RadioGroup value={shippingMethod} onValueChange={(v) => setShippingMethod(v as 'HOME' | 'BOX')}>
+                <RadioGroup value={shippingMethod} onValueChange={(v) => {
+                  setShippingMethod(v as 'HOME' | 'BOX');
+                  // Set first provider of new type
+                  const providers = v === 'HOME' ? homeProviders : boxProviders;
+                  if (providers.length > 0) {
+                    setSelectedProviderId(providers[0].id);
+                  }
+                }}>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="HOME" id="home" />
-                    <Label htmlFor="home">Házhozszállítás ({formatPrice(shippingConfig?.base_fee || 0)})</Label>
+                    <Label htmlFor="home">Házhozszállítás</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="BOX" id="box" />
-                    <Label htmlFor="box">Csomagpont ({formatPrice(shippingConfig?.box_fee || 0)})</Label>
+                    <Label htmlFor="box">Csomagpont</Label>
                   </div>
                 </RadioGroup>
                 
                 {shippingMethod === 'HOME' && (
                   <div className="space-y-4 mt-4">
+                    {/* Provider Selection */}
+                    {homeProviders.length > 0 && (
+                      <div>
+                        <Label>Szállító szolgáltató *</Label>
+                        <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válassz szolgáltatót" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {homeProviders.map(provider => (
+                              <SelectItem key={provider.id} value={provider.id}>
+                                {provider.name} - {formatPrice(provider.fee)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <div>
                       <Label>Ország</Label>
                       <Input value={shippingCountry} onChange={(e) => setShippingCountry(e.target.value)} />
@@ -424,13 +466,36 @@ export default function CartPage() {
                 
                 {shippingMethod === 'BOX' && (
                   <div className="space-y-4 mt-4">
+                    {/* Box Provider Selection */}
+                    {boxProviders.length > 0 ? (
+                      <div>
+                        <Label>Csomagpont szolgáltató *</Label>
+                        <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válassz szolgáltatót" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {boxProviders.map(provider => (
+                              <SelectItem key={provider.id} value={provider.id}>
+                                {provider.name} - {formatPrice(provider.fee)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label>Szolgáltató *</Label>
+                        <Input value={boxProvider} onChange={(e) => setBoxProvider(e.target.value)} placeholder="pl. Foxpost, GLS" />
+                      </div>
+                    )}
                     <div>
-                      <Label>Szolgáltató</Label>
-                      <Input value={boxProvider} onChange={(e) => setBoxProvider(e.target.value)} placeholder="pl. Foxpost, GLS" />
+                      <Label>Csomagpont azonosító *</Label>
+                      <Input value={boxPointId} onChange={(e) => setBoxPointId(e.target.value)} placeholder="Csomagpont kód" />
                     </div>
                     <div>
-                      <Label>Csomagpont azonosító</Label>
-                      <Input value={boxPointId} onChange={(e) => setBoxPointId(e.target.value)} />
+                      <Label>Csomagpont neve/címe</Label>
+                      <Input value={boxPointLabel} onChange={(e) => setBoxPointLabel(e.target.value)} placeholder="pl. Budapest, Westend" />
                     </div>
                   </div>
                 )}
@@ -445,7 +510,7 @@ export default function CartPage() {
             
             {/* Billing */}
             <Card className="p-6">
-              <h2 className="font-bold mb-4">Számlázás</h2>
+              <h2 className="font-bold mb-4">Számlázási adatok</h2>
               <div className="flex items-center space-x-2 mb-4">
                 <Checkbox
                   id="same-billing"
@@ -460,8 +525,8 @@ export default function CartPage() {
               {!billingSameAsShipping && (
                 <div className="space-y-4">
                   <div>
-                    <Label>Számlázási név</Label>
-                    <Input value={billingName} onChange={(e) => setBillingName(e.target.value)} />
+                    <Label>Számlázási név *</Label>
+                    <Input value={billingName} onChange={(e) => setBillingName(e.target.value)} placeholder="Cégnév vagy teljes név" />
                   </div>
                   <div>
                     <Label>Ország</Label>
@@ -495,7 +560,7 @@ export default function CartPage() {
                 </div>
                 {hasPhysicalItems() && (
                   <div className="flex justify-between">
-                    <span>Szállítás:</span>
+                    <span>Szállítás ({getSelectedProviderName()}):</span>
                     <span>{getShippingFee() === 0 ? 'Ingyenes' : formatPrice(getShippingFee())}</span>
                   </div>
                 )}
