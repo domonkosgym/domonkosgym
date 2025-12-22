@@ -1,11 +1,21 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type Language = 'hu' | 'en' | 'es';
+
+interface CMSSetting {
+  key: string;
+  lang: string;
+  value: string | null;
+  is_published: boolean;
+}
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: string) => string;
+  isLoading: boolean;
+  refreshTranslations: () => Promise<void>;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -24,10 +34,85 @@ interface LanguageProviderProps {
 
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const [language, setLanguage] = useState<Language>('hu');
+  const [cmsTranslations, setCmsTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch CMS translations from database
+  const fetchTranslations = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cms_settings')
+        .select('key, lang, value, is_published')
+        .eq('is_published', true);
+
+      if (error) {
+        console.error('Error fetching CMS translations:', error);
+        return;
+      }
+
+      if (data) {
+        const translationsMap: Record<string, Record<string, string>> = {};
+        
+        data.forEach((item: CMSSetting) => {
+          if (!translationsMap[item.lang]) {
+            translationsMap[item.lang] = {};
+          }
+          if (item.value) {
+            translationsMap[item.lang][item.key] = item.value;
+          }
+        });
+
+        setCmsTranslations(translationsMap);
+      }
+    } catch (err) {
+      console.error('Failed to fetch translations:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    fetchTranslations();
+  }, [fetchTranslations]);
+
+  // Subscribe to realtime changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('cms-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'cms_settings'
+        },
+        () => {
+          // Refresh translations when CMS changes
+          fetchTranslations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchTranslations]);
+
+  const refreshTranslations = useCallback(async () => {
+    await fetchTranslations();
+  }, [fetchTranslations]);
 
   const t = (key: string): string => {
+    // First check CMS translations
+    const cmsValue = cmsTranslations[language]?.[key];
+    if (cmsValue) {
+      return cmsValue;
+    }
+
+    // Fallback to hardcoded translations
     const keys = key.split('.');
-    let value: any = translations[language];
+    let value: any = defaultTranslations[language];
 
     for (const k of keys) {
       if (value && typeof value === 'object') {
@@ -41,13 +126,14 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isLoading, refreshTranslations }}>
       {children}
     </LanguageContext.Provider>
   );
 };
 
-const translations: Record<Language, any> = {
+// Default translations as fallback
+const defaultTranslations: Record<Language, any> = {
   hu: {
     nav: {
       home: 'FŐOLDAL',
@@ -176,6 +262,15 @@ const translations: Record<Language, any> = {
     checkout: {
       title: 'Checkout',
       subtitle: 'Checkout oldal fejlesztés alatt (SimplePay, Számlázz.hu integráció következik)'
+    },
+    books: {
+      title: 'Könyvek',
+      subtitle: 'Tudás és inspiráció a fitness utadhoz',
+      viewDetails: 'Részletek',
+      digital: 'E-könyv (online)',
+      physical: 'Fizikai könyv (offline)',
+      featured: 'Kiemelt',
+      sale: 'Akció'
     }
   },
   en: {
@@ -306,6 +401,15 @@ const translations: Record<Language, any> = {
     checkout: {
       title: 'Checkout',
       subtitle: 'Checkout page under development (SimplePay, Számlázz.hu integration coming)'
+    },
+    books: {
+      title: 'Books',
+      subtitle: 'Knowledge and inspiration for your fitness journey',
+      viewDetails: 'View Details',
+      digital: 'E-book (online)',
+      physical: 'Physical book (offline)',
+      featured: 'Featured',
+      sale: 'Sale'
     }
   },
   es: {
@@ -409,33 +513,42 @@ const translations: Record<Language, any> = {
       netPrice: 'Precio neto (sin IVA)',
       selectBtn: 'Seleccionar',
       consultation1: 'Consulta Online',
-      consultation1Desc: 'Consulta online de 30 minutos por videollamada',
+      consultation1Desc: 'Consulta en línea de 30 minutos a través de videollamada',
       consultation2: 'Consulta Personal',
-      consultation2Desc: 'Consulta personal de 60 minutos en oficina de Budapest',
+      consultation2Desc: 'Consulta personal de 60 minutos en la oficina de Budapest',
       consultation3: 'Consulta de Seguimiento',
       consultation3Desc: '4 semanas de seguimiento continuo con consultas semanales',
-      nutrition1: 'Plan de Comidas para Pérdida de Peso',
+      nutrition1: 'Plan de Pérdida de Peso',
       nutrition1Desc: 'Plan de comidas personalizado para reducción de peso con recetas detalladas',
-      nutrition2: 'Plan de Comidas para Ganar Músculo',
-      nutrition2Desc: 'Plan nutricional optimizado para el crecimiento de masa muscular',
+      nutrition2: 'Plan de Construcción Muscular',
+      nutrition2Desc: 'Plan de nutrición optimizado para el crecimiento de masa muscular',
       nutrition3: 'Plan de Comidas Personalizado',
       nutrition3Desc: 'Plan de comidas completamente personalizado para cualquier objetivo',
       workout1: 'Plan de Entrenamiento en Casa',
-      workout1Desc: 'Programa de entrenamiento de 4 semanas adaptado para casa',
+      workout1Desc: 'Programa de entrenamiento de 4 semanas adaptado a condiciones del hogar',
       workout2: 'Plan de Entrenamiento en Gimnasio',
-      workout2Desc: 'Plan de entrenamiento profesional para equipamiento de gimnasio',
+      workout2Desc: 'Plan de entrenamiento profesional para equipos de gimnasio',
       workout3: 'Plan de Entrenamiento Funcional',
       workout3Desc: 'Programa de entrenamiento individual basado en entrenamiento funcional',
       package1: 'Paquete Inicial',
       package1Desc: 'Plan de Comidas + Plan de Entrenamiento + 1 consulta',
       package2: 'Transformación Completa',
-      package2Desc: 'Plan de Comidas + Plan de Entrenamiento + Seguimiento de 4 semanas + consultas ilimitadas',
+      package2Desc: 'Plan de Comidas + Plan de Entrenamiento + 4 semanas de seguimiento + consultas ilimitadas',
       package3: 'Paquete Avanzado',
-      package3Desc: 'Apoyo integral durante 12 semanas con todos los servicios'
+      package3Desc: 'Soporte integral durante 12 semanas con todos los servicios'
     },
     checkout: {
       title: 'Checkout',
-      subtitle: 'Página de checkout en desarrollo (integración SimplePay, Számlázz.hu próximamente)'
+      subtitle: 'Página de pago en desarrollo (integración con SimplePay, Számlázz.hu próximamente)'
+    },
+    books: {
+      title: 'Libros',
+      subtitle: 'Conocimiento e inspiración para tu viaje fitness',
+      viewDetails: 'Ver detalles',
+      digital: 'E-libro (en línea)',
+      physical: 'Libro físico (offline)',
+      featured: 'Destacado',
+      sale: 'Oferta'
     }
   }
 };
