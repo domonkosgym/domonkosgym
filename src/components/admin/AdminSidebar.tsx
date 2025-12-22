@@ -1,4 +1,4 @@
-import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit, ExternalLink, ListOrdered, User, Image } from "lucide-react";
+import { LayoutDashboard, Mail, HelpCircle, BarChart3, Building2, LogOut, Package, FileText, Receipt, TrendingUp, Calendar, Settings, BookOpen, ShoppingCart, Truck, Palette, FileEdit, ExternalLink, ListOrdered, User, Image, Globe, Database } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar,
@@ -103,6 +103,16 @@ const menuItems = [
     title: "Design / Téma",
     url: "/admin/theme",
     icon: Palette,
+  },
+  {
+    title: "Domének",
+    url: "/admin/domains",
+    icon: Globe,
+  },
+  {
+    title: "Adatbázis Export",
+    url: "/admin/database-export",
+    icon: Database,
   },
 ];
 
