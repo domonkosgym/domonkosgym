@@ -66,9 +66,12 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
           <div className="ml-6 md:ml-8 lg:ml-16 xl:ml-20 space-y-8 md:space-y-12 max-w-2xl">
             {/* Main Heading */}
             <div>
-            <h1 className="text-[clamp(1.5rem,8vw,5rem)] font-black text-foreground uppercase leading-none mb-4">
-              {t('hero.name')}
-            </h1>
+              <h1 className="text-[clamp(1.5rem,8vw,5rem)] font-black text-foreground uppercase leading-none mb-1">
+                {t('hero.name')}
+              </h1>
+              <p className="text-primary font-bold text-sm sm:text-base md:text-lg uppercase tracking-wider">
+                {t('hero.subtitle')}
+              </p>
               <p className="text-muted-foreground text-xs sm:text-sm md:text-base max-w-md leading-relaxed mt-4 md:mt-6">
                 {t('hero.intro')}
               </p>

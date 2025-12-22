@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      about_page: {
+        Row: {
+          achievements: string[] | null
+          content_en: string
+          content_es: string
+          content_hu: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          subtitle_en: string | null
+          subtitle_es: string | null
+          subtitle_hu: string | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at: string | null
+        }
+        Insert: {
+          achievements?: string[] | null
+          content_en: string
+          content_es: string
+          content_hu: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          subtitle_en?: string | null
+          subtitle_es?: string | null
+          subtitle_hu?: string | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Update: {
+          achievements?: string[] | null
+          content_en?: string
+          content_es?: string
+          content_hu?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          subtitle_en?: string | null
+          subtitle_es?: string | null
+          subtitle_hu?: string | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       availability_slots: {
         Row: {
           created_at: string
