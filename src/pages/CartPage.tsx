@@ -256,7 +256,7 @@ export default function CartPage() {
           <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-2">A kosár üres</h1>
           <p className="text-muted-foreground mb-6">Nézd meg a kínálatunkat és válaszd ki a neked tetsző termékeket!</p>
-          <Button onClick={() => navigate('/#books')}>
+          <Button onClick={() => navigate('/tudastar')}>
             Termékek megtekintése
           </Button>
         </div>
@@ -268,9 +268,9 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="flex justify-between items-center px-4 md:px-12 py-4">
-        <Button variant="ghost" onClick={() => navigate('/#books')} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => navigate('/tudastar')} className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Vissza a könyvekhez
+          Vissza a Tudástárhoz
         </Button>
         <div className="flex items-center gap-2">
           <LanguageSelector />

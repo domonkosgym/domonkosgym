@@ -113,6 +113,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
           <a href="/" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.home')}</a>
           <a href="/about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
           <a href="/services" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.services')}</a>
+          <a href="/tudastar" className="hidden sm:block text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.knowledge') || 'Tudástár'}</a>
           {/* Foglalj helyet button on mobile and tablet */}
           <Button
             onClick={handleReserveClick}
@@ -189,11 +190,15 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
         </div>
 
         {/* Right Side - Large Image */}
-        <div className="w-full lg:w-1/2 relative min-h-[40vh] lg:min-h-screen">
+        <div className="w-full lg:w-1/2 relative min-h-[40vh] lg:min-h-screen bg-muted">
+          {isLoading && (
+            <div className="absolute inset-0 bg-muted animate-pulse" />
+          )}
           <img
             src={heroImage || workoutImage}
             alt="Training Hard"
             className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
+            loading="eager"
           />
         </div>
       </div>
