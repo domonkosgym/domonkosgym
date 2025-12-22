@@ -60,11 +60,6 @@ const menuItems = [
     icon: Building2,
   },
   {
-    title: "FAQ Kezelés",
-    url: "/admin/faq",
-    icon: HelpCircle,
-  },
-  {
     title: "Számlák",
     url: "/admin/invoices",
     icon: Receipt,
