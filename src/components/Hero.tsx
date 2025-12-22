@@ -147,8 +147,10 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
           <div className="ml-6 md:ml-8 lg:ml-16 xl:ml-20 space-y-8 md:space-y-12 max-w-2xl">
             {/* Main Heading */}
             <div>
-              <h1 className="text-[clamp(1.75rem,6vw,4.5rem)] font-black text-foreground uppercase leading-none mb-1 break-words">
-                {title}
+              <h1 className="text-[clamp(1.75rem,6vw,4.5rem)] font-black text-foreground uppercase leading-none mb-1">
+                {title.split(' ').map((word, index) => (
+                  <span key={index} className="block">{word}</span>
+                ))}
               </h1>
               <p className="text-primary font-bold text-sm sm:text-base md:text-lg uppercase tracking-wider">
                 {subtitle}
