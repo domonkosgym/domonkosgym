@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Building2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface B2BContent {
   title: string;
@@ -31,49 +31,46 @@ const defaultContent: Record<string, B2BContent> = {
 
 export const B2BSection = () => {
   const navigate = useNavigate();
-  const { language, t } = useLanguage();
-  const [content, setContent] = useState<B2BContent | null>(null);
+  const { language } = useLanguage();
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const { data: content } = useQuery({
+    queryKey: ["b2b-section", language],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('landing_page_sections')
         .select('*')
         .eq('section_key', 'b2b')
         .maybeSingle();
 
-      if (!error && data) {
-        const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
-        const contentField = `content${langSuffix}` as keyof typeof data;
-        const titleField = `title${langSuffix}` as keyof typeof data;
-        
-        try {
-          const rawContent = data[contentField] as string;
-          const title = data[titleField] as string;
-          if (rawContent) {
-            const parsed = JSON.parse(rawContent);
-            setContent({
-              title: title || parsed.title || defaultContent[language].title,
-              description: parsed.description || defaultContent[language].description,
-              button: parsed.button || defaultContent[language].button
-            });
-          } else {
-            setContent({
-              title: title || defaultContent[language].title,
-              description: defaultContent[language].description,
-              button: defaultContent[language].button
-            });
-          }
-        } catch {
-          setContent(defaultContent[language]);
-        }
-      } else {
-        setContent(defaultContent[language]);
-      }
-    };
+      if (error || !data) return defaultContent[language];
 
-    fetchData();
-  }, [language]);
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      const contentField = `content${langSuffix}` as keyof typeof data;
+      const titleField = `title${langSuffix}` as keyof typeof data;
+      
+      try {
+        const rawContent = data[contentField] as string;
+        const title = data[titleField] as string;
+        if (rawContent) {
+          const parsed = JSON.parse(rawContent);
+          return {
+            title: title || parsed.title || defaultContent[language].title,
+            description: parsed.description || defaultContent[language].description,
+            button: parsed.button || defaultContent[language].button
+          };
+        } else {
+          return {
+            title: title || defaultContent[language].title,
+            description: defaultContent[language].description,
+            button: defaultContent[language].button
+          };
+        }
+      } catch {
+        return defaultContent[language];
+      }
+    },
+    staleTime: 0,
+  });
 
   const displayContent = content || defaultContent[language];
 

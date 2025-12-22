@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface BioContent {
   text1: string;
@@ -24,47 +24,47 @@ const defaultContent: Record<string, BioContent> = {
 
 export const Bio = () => {
   const { language } = useLanguage();
-  const [title, setTitle] = useState<string>("");
-  const [content, setContent] = useState<BioContent | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBioData = async () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["bio-section", language],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('landing_page_sections')
         .select('*')
         .eq('section_key', 'bio')
         .maybeSingle();
 
-      if (!error && data) {
-        const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
-        const contentField = `content${langSuffix}` as keyof typeof data;
-        const titleField = `title${langSuffix}` as keyof typeof data;
-        
-        let parsedContent: BioContent;
-        try {
-          const rawContent = data[contentField] as string;
-          parsedContent = rawContent ? JSON.parse(rawContent) : defaultContent[language];
-        } catch {
-          parsedContent = defaultContent[language];
-        }
-
-        setTitle((data[titleField] as string) || (language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí'));
-        setContent(parsedContent);
-      } else {
-        setTitle(language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí');
-        setContent(defaultContent[language]);
+      if (error || !data) {
+        return {
+          title: language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí',
+          content: defaultContent[language]
+        };
       }
-      setLoading(false);
-    };
 
-    fetchBioData();
-  }, [language]);
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      const contentField = `content${langSuffix}` as keyof typeof data;
+      const titleField = `title${langSuffix}` as keyof typeof data;
+      
+      let parsedContent: BioContent;
+      try {
+        const rawContent = data[contentField] as string;
+        parsedContent = rawContent ? JSON.parse(rawContent) : defaultContent[language];
+      } catch {
+        parsedContent = defaultContent[language];
+      }
 
-  const displayContent = content || defaultContent[language];
-  const displayTitle = title || (language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí');
+      return {
+        title: (data[titleField] as string) || (language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí'),
+        content: parsedContent
+      };
+    },
+    staleTime: 0,
+  });
 
-  if (loading) {
+  const displayContent = data?.content || defaultContent[language];
+  const displayTitle = data?.title || (language === 'hu' ? 'Rólam' : language === 'en' ? 'About Me' : 'Sobre mí');
+
+  if (isLoading) {
     return (
       <section className="py-12 sm:py-16 md:py-20 px-3 sm:px-4 md:px-8">
         <div className="container mx-auto max-w-4xl">

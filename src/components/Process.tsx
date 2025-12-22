@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import gymAction from "@/assets/hero2.jpg";
 import { 
   Star, MessageCircle, ClipboardList, TrendingUp, Target, Users, 
@@ -41,13 +41,10 @@ interface ProcessStep {
 
 export const Process = () => {
   const { language, t } = useLanguage();
-  const [steps, setSteps] = useState<ProcessStep[]>([]);
-  const [sectionImage, setSectionImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch steps and section image in parallel
+  const { data, isLoading } = useQuery({
+    queryKey: ["process-section"],
+    queryFn: async () => {
       const [stepsResult, imageResult] = await Promise.all([
         supabase
           .from('process_steps')
@@ -61,19 +58,16 @@ export const Process = () => {
           .maybeSingle()
       ]);
 
-      if (!stepsResult.error && stepsResult.data) {
-        setSteps(stepsResult.data);
-      }
-      
-      if (!imageResult.error && imageResult.data?.image_url) {
-        setSectionImage(imageResult.data.image_url);
-      }
-      
-      setLoading(false);
-    };
+      return {
+        steps: stepsResult.data || [],
+        sectionImage: imageResult.data?.image_url || null
+      };
+    },
+    staleTime: 0,
+  });
 
-    fetchData();
-  }, []);
+  const steps = data?.steps || [];
+  const sectionImage = data?.sectionImage;
 
   const getTitle = (step: ProcessStep) => {
     switch (language) {
@@ -95,7 +89,7 @@ export const Process = () => {
     return ICON_MAP[iconName] || Star;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="py-12 sm:py-16 md:py-20 px-3 sm:px-4 md:px-8">
         <div className="container mx-auto">

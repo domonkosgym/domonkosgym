@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface FeaturedLink {
   id: string;
@@ -18,26 +19,22 @@ interface FeaturedLink {
 
 export const FeaturedIn = () => {
   const { language, t } = useLanguage();
-  const [links, setLinks] = useState<FeaturedLink[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    const fetchLinks = async () => {
+  const { data: links = [], isLoading } = useQuery({
+    queryKey: ["featured-links"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('featured_links')
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
-      if (!error && data) {
-        setLinks(data);
-      }
-      setLoading(false);
-    };
-
-    fetchLinks();
-  }, []);
+      if (error) throw error;
+      return data as FeaturedLink[];
+    },
+    staleTime: 0,
+  });
 
   const getTitle = (link: FeaturedLink) => {
     switch (language) {
@@ -67,7 +64,7 @@ export const FeaturedIn = () => {
     setCurrentIndex(Math.min(links.length - 1, currentIndex + 1));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="py-4 sm:py-6 md:py-8 px-2 sm:px-4 md:px-6 bg-secondary/30">
         <div className="container mx-auto">
