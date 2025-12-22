@@ -17,9 +17,35 @@ interface FeaturedLink {
   is_youtube: boolean;
 }
 
+interface SectionData {
+  title: string;
+  subtitle: string | null;
+}
+
 export const FeaturedIn = () => {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Fetch section title/subtitle from landing_page_sections
+  const { data: sectionData } = useQuery({
+    queryKey: ["featured-in-section", language],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('landing_page_sections')
+        .select('title_hu, title_en, title_es, subtitle_hu, subtitle_en, subtitle_es')
+        .eq('section_key', 'featured_in')
+        .maybeSingle();
+
+      if (error || !data) return { title: 'Média megjelenések', subtitle: null };
+
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      return {
+        title: (data[`title${langSuffix}` as keyof typeof data] as string) || 'Média megjelenések',
+        subtitle: data[`subtitle${langSuffix}` as keyof typeof data] as string | null
+      };
+    },
+    staleTime: 0,
+  });
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ["featured-links"],
@@ -92,11 +118,13 @@ export const FeaturedIn = () => {
             </div>
           </div>
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground uppercase">
-            {t('featuredIn.title')}
+            {sectionData?.title || 'Média megjelenések'}
           </h2>
-          <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-0.5 sm:mt-1">
-            {t('featuredIn.subtitle')}
-          </p>
+          {sectionData?.subtitle && (
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-0.5 sm:mt-1">
+              {sectionData.subtitle}
+            </p>
+          )}
         </div>
 
         {/* Carousel Container */}
@@ -122,11 +150,11 @@ export const FeaturedIn = () => {
           )}
 
           {/* Cards Container */}
-          <div className="overflow-hidden">
+          <div className="overflow-hidden px-1">
             <div 
-              className="flex gap-2 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
+              className="flex gap-3 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
               style={{
-                transform: `translateX(-${currentIndex * (cardWidth + gap)}px)`,
+                transform: `translateX(-${currentIndex * (140 + 12)}px)`,
               }}
             >
               {links.map((link) => (
@@ -135,7 +163,7 @@ export const FeaturedIn = () => {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-shrink-0 w-[138px] sm:w-[166px] md:w-[180px] lg:w-[193px] group"
+                  className="flex-shrink-0 w-[140px] sm:w-[166px] md:w-[180px] lg:w-[193px] group"
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
                     {/* Cover Image - Square aspect ratio */}
@@ -183,14 +211,14 @@ export const FeaturedIn = () => {
           </div>
 
           {/* Mobile Scroll Hint */}
-          {links.length > 2 && (
+          {links.length > 1 && (
             <div className="flex justify-center gap-1.5 mt-3 md:hidden">
-              {Array.from({ length: Math.ceil(links.length / 2) }).map((_, index) => (
+              {links.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index * 2)}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    Math.floor(currentIndex / 2) === index ? 'bg-primary' : 'bg-muted'
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    currentIndex === index ? 'bg-primary scale-125' : 'bg-muted-foreground/30'
                   }`}
                 />
               ))}

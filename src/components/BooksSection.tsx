@@ -147,17 +147,17 @@ export const BooksSection = () => {
           )}
 
           {/* Cards Container */}
-          <div className="overflow-hidden">
+          <div className="overflow-hidden px-1">
             <div 
-              className="flex gap-2 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
+              className="flex gap-3 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
               style={{
-                transform: `translateX(-${currentIndex * (193 + 16)}px)`,
+                transform: `translateX(-${currentIndex * (140 + 12)}px)`,
               }}
             >
               {products.map((product) => (
                 <div 
                   key={product.id}
-                  className="flex-shrink-0 w-[138px] sm:w-[166px] md:w-[180px] lg:w-[193px] group cursor-pointer"
+                  className="flex-shrink-0 w-[140px] sm:w-[166px] md:w-[180px] lg:w-[193px] group cursor-pointer"
                   onClick={() => navigate(`/book/${product.id}`)}
                 >
                   <div className="bg-card border border-border rounded-[5px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 h-full flex flex-col">
@@ -247,14 +247,14 @@ export const BooksSection = () => {
           </div>
 
           {/* Mobile Scroll Hint */}
-          {products.length > 2 && (
+          {products.length > 1 && (
             <div className="flex justify-center gap-1.5 mt-3 md:hidden">
-              {Array.from({ length: Math.ceil(products.length / 2) }).map((_, index) => (
+              {products.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index * 2)}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    Math.floor(currentIndex / 2) === index ? 'bg-primary' : 'bg-muted'
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    currentIndex === index ? 'bg-primary scale-125' : 'bg-muted-foreground/30'
                   }`}
                 />
               ))}
