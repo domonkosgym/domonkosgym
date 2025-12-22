@@ -975,6 +975,51 @@ export type Database = {
         }
         Relationships: []
       }
+      process_steps: {
+        Row: {
+          created_at: string | null
+          description_en: string
+          description_es: string
+          description_hu: string
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description_en: string
+          description_es: string
+          description_hu: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description_en?: string
+          description_es?: string
+          description_hu?: string
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           cover_image_url: string | null

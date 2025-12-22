@@ -31,6 +31,9 @@ import ShippingAdmin from "./pages/admin/ShippingAdmin";
 import CMSEditor from "./pages/admin/CMSEditor";
 import ThemeEditor from "./pages/admin/ThemeEditor";
 import FeaturedLinksAdmin from "./pages/admin/FeaturedLinksAdmin";
+import ProcessStepsAdmin from "./pages/admin/ProcessStepsAdmin";
+import AboutAdmin from "./pages/admin/AboutAdmin";
+import About from "./pages/About";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
 import { TrackingWrapper } from "./components/TrackingWrapper";
@@ -49,6 +52,7 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/checkout/:slug" element={<Checkout />} />
             <Route path="/b2b" element={<B2B />} />
+            <Route path="/about" element={<About />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/book/:id" element={<BookDetail />} />
@@ -73,6 +77,8 @@ const App = () => (
               <Route path="cms" element={<CMSEditor />} />
               <Route path="theme" element={<ThemeEditor />} />
               <Route path="featured-links" element={<FeaturedLinksAdmin />} />
+              <Route path="process-steps" element={<ProcessStepsAdmin />} />
+              <Route path="about" element={<AboutAdmin />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
