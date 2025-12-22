@@ -11,29 +11,101 @@ interface HeroProps {
   onViewPricing: () => void;
 }
 
+interface HeroContent {
+  intro: string;
+  slogan: string;
+  slogan2: string;
+  features: string[];
+  cta_button: string;
+  join_title: string;
+  join_subtitle: string;
+}
+
+interface HeroData {
+  title: string;
+  subtitle: string;
+  content: HeroContent;
+  image_url: string | null;
+}
+
+const defaultContent: Record<string, HeroContent> = {
+  hu: {
+    intro: "Szia, Zsolt vagyok. Táplálkozási és teljesítmény-coachként egyszerű, működő szokásokban hiszek – felesleges körök nélkül.",
+    slogan: "EDDZ KEMÉNYEN!",
+    slogan2: "ÉLJ JOBBAN",
+    features: ["FEDEZD FEL A POTENCIÁLOD", "SZAKÉRTŐ COACHING", "EREDMÉNYORIENTÁLT PROGRAMOK", "TÁMOGATÓ KÖZÖSSÉG"],
+    cta_button: "FOGLALJ HELYET",
+    join_title: "CSATLAKOZZ",
+    join_subtitle: "VÁLLALJ TÖBBET!"
+  },
+  en: {
+    intro: "Hi, I'm Zsolt. As a nutrition and performance coach, I believe in simple, effective habits – no unnecessary complications.",
+    slogan: "TRAIN HARD.",
+    slogan2: "LIVE BETTER",
+    features: ["DISCOVER YOUR POTENTIAL", "EXPERT COACHING", "RESULTS-DRIVEN PROGRAMS", "A SUPPORTIVE TRIBE"],
+    cta_button: "RESERVE YOUR SPOT",
+    join_title: "JOIN US",
+    join_subtitle: "TAKE ON MORE!"
+  },
+  es: {
+    intro: "Hola, soy Zsolt. Como entrenador de nutrición y rendimiento, creo en hábitos simples y efectivos.",
+    slogan: "ENTRENA DURO.",
+    slogan2: "VIVE MEJOR",
+    features: ["DESCUBRE TU POTENCIAL", "ENTRENAMIENTO EXPERTO", "PROGRAMAS ORIENTADOS A RESULTADOS", "UNA COMUNIDAD DE APOYO"],
+    cta_button: "RESERVA TU LUGAR",
+    join_title: "ÚNETE",
+    join_subtitle: "¡ASUME MÁS!"
+  }
+};
+
 export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { trackCTAClick } = useAnalytics();
-  const [heroImage, setHeroImage] = useState<string | null>(null);
+  const [heroData, setHeroData] = useState<HeroData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHeroImage = async () => {
+    const fetchHeroData = async () => {
       const { data, error } = await supabase
-        .from('site_images')
-        .select('image_url')
-        .eq('image_key', 'hero_main')
+        .from('landing_page_sections')
+        .select('*')
+        .eq('section_key', 'hero')
         .maybeSingle();
 
-      if (!error && data?.image_url) {
-        setHeroImage(data.image_url);
+      if (!error && data) {
+        const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+        const contentField = `content${langSuffix}` as keyof typeof data;
+        const titleField = `title${langSuffix}` as keyof typeof data;
+        const subtitleField = `subtitle${langSuffix}` as keyof typeof data;
+        
+        let parsedContent: HeroContent;
+        try {
+          const rawContent = data[contentField] as string;
+          parsedContent = rawContent ? JSON.parse(rawContent) : defaultContent[language];
+        } catch {
+          parsedContent = defaultContent[language];
+        }
+
+        setHeroData({
+          title: (data[titleField] as string) || defaultContent[language].slogan,
+          subtitle: (data[subtitleField] as string) || "THE COACH",
+          content: parsedContent,
+          image_url: data.image_urls?.[0] || null
+        });
       }
+      setLoading(false);
     };
 
-    fetchHeroImage();
-  }, []);
+    fetchHeroData();
+  }, [language]);
+
+  const content = heroData?.content || defaultContent[language];
+  const title = heroData?.title || "DOMONKOS ZSOLT";
+  const subtitle = heroData?.subtitle || "THE COACH";
+  const heroImage = heroData?.image_url;
 
   const handleReserveClick = () => {
-    trackCTAClick(t('hero.reserveSpot'), 'primary_cta');
+    trackCTAClick(content.cta_button, 'primary_cta');
     onViewPricing();
   };
 
@@ -55,7 +127,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
             onClick={handleReserveClick}
             className="lg:hidden bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[10px] sm:text-xs px-2 sm:px-4 whitespace-nowrap h-7 sm:h-8"
           >
-            {t('hero.reserveSpot')}
+            {content.cta_button}
           </Button>
         </div>
         
@@ -66,7 +138,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
             onClick={handleReserveClick}
             className="hidden lg:block bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-xs sm:text-sm px-4 sm:px-6 whitespace-nowrap"
           >
-            {t('hero.reserveSpot')}
+            {content.cta_button}
           </Button>
         </div>
       </nav>
@@ -86,43 +158,36 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
             {/* Main Heading */}
             <div>
               <h1 className="text-[clamp(1.5rem,8vw,5rem)] font-black text-foreground uppercase leading-none mb-1">
-                {t('hero.name')}
+                {title}
               </h1>
               <p className="text-primary font-bold text-sm sm:text-base md:text-lg uppercase tracking-wider">
-                {t('hero.subtitle')}
+                {subtitle}
               </p>
               <p className="text-muted-foreground text-xs sm:text-sm md:text-base max-w-md leading-relaxed mt-4 md:mt-6">
-                {t('hero.intro')}
+                {content.intro}
               </p>
             </div>
 
             {/* Big Yellow Headline */}
             <div>
             <h2 className="text-[clamp(1.25rem,6vw,4rem)] font-black uppercase leading-tight">
-              {t('hero.trainHard')}
+              {content.slogan}
             </h2>
             </div>
 
             {/* Feature List */}
             <div className="space-y-3 md:space-y-4 mt-8 md:mt-12">
-              <div className="border-l-2 border-foreground pl-3 md:pl-4">
-                <p className="text-foreground font-bold text-xs md:text-sm uppercase tracking-wider">{t('hero.discoverPotential')}</p>
-              </div>
-              <div className="border-l-2 border-foreground pl-3 md:pl-4">
-                <p className="text-foreground font-bold text-xs md:text-sm uppercase tracking-wider">{t('hero.expertCoaching')}</p>
-              </div>
-              <div className="border-l-2 border-foreground pl-3 md:pl-4">
-                <p className="text-foreground font-bold text-xs md:text-sm uppercase tracking-wider">{t('hero.resultsDriven')}</p>
-              </div>
-              <div className="border-l-2 border-foreground pl-3 md:pl-4">
-                <p className="text-foreground font-bold text-xs md:text-sm uppercase tracking-wider">{t('hero.supportiveTribe')}</p>
-              </div>
+              {content.features.map((feature, index) => (
+                <div key={index} className="border-l-2 border-foreground pl-3 md:pl-4">
+                  <p className="text-foreground font-bold text-xs md:text-sm uppercase tracking-wider">{feature}</p>
+                </div>
+              ))}
               <div className="mt-6 md:mt-8">
                 <Button
                   onClick={handleReserveClick}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-xs sm:text-sm px-4 sm:px-6"
                 >
-                  {t('hero.reserveSpot')}
+                  {content.cta_button}
                 </Button>
               </div>
             </div>
@@ -142,10 +207,10 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
       {/* CTA Section */}
       <div className="bg-background py-12 md:py-16 text-center px-4">
         <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-foreground uppercase mb-2">
-          {t('hero.joinUs')}
+          {content.join_title}
         </h2>
         <p className="text-muted-foreground text-xs sm:text-sm uppercase tracking-wider">
-          {t('hero.takeMore')}
+          {content.join_subtitle}
         </p>
       </div>
 

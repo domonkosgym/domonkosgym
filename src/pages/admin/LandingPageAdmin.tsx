@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Save, X, GripVertical, Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { Save, X, Plus, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
 interface LandingSection {
   id: string;
@@ -25,6 +25,21 @@ interface LandingSection {
   image_urls: string[];
   sort_order: number;
   is_active: boolean;
+}
+
+interface HeroContent {
+  intro: string;
+  slogan: string;
+  slogan2: string;
+  features: string[];
+  cta_button: string;
+  join_title: string;
+  join_subtitle: string;
+}
+
+interface BioContent {
+  text1: string;
+  text2: string;
 }
 
 export default function LandingPageAdmin() {
@@ -68,7 +83,6 @@ export default function LandingPageAdmin() {
     const newSections = [...sections];
     [newSections[index], newSections[newIndex]] = [newSections[newIndex], newSections[index]];
     
-    // Update sort_order values
     const updatedSections = newSections.map((section, idx) => ({
       ...section,
       sort_order: idx + 1,
@@ -173,7 +187,361 @@ export default function LandingPageAdmin() {
     return descriptions[key] || "";
   };
 
+  // Parse JSON content safely
+  const parseJsonContent = <T,>(content: string, defaultValue: T): T => {
+    if (!content) return defaultValue;
+    try {
+      return JSON.parse(content);
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // Update JSON content field
+  const updateJsonContent = (sectionId: string, lang: 'hu' | 'en' | 'es', field: string, value: any) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    const contentKey = `content_${lang}` as keyof LandingSection;
+    const currentContent = parseJsonContent(section[contentKey] as string, {});
+    const newContent = { ...currentContent, [field]: value };
+    
+    updateSection(sectionId, { [contentKey]: JSON.stringify(newContent) });
+  };
+
+  // Add feature to list
+  const addFeature = (sectionId: string, lang: 'hu' | 'en' | 'es') => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    const contentKey = `content_${lang}` as keyof LandingSection;
+    const content = parseJsonContent<HeroContent>(section[contentKey] as string, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+    const newFeatures = [...(content.features || []), ''];
+    updateJsonContent(sectionId, lang, 'features', newFeatures);
+  };
+
+  // Remove feature from list
+  const removeFeature = (sectionId: string, lang: 'hu' | 'en' | 'es', index: number) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    const contentKey = `content_${lang}` as keyof LandingSection;
+    const content = parseJsonContent<HeroContent>(section[contentKey] as string, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+    const newFeatures = content.features.filter((_, i) => i !== index);
+    updateJsonContent(sectionId, lang, 'features', newFeatures);
+  };
+
+  // Update feature in list
+  const updateFeature = (sectionId: string, lang: 'hu' | 'en' | 'es', index: number, value: string) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    const contentKey = `content_${lang}` as keyof LandingSection;
+    const content = parseJsonContent<HeroContent>(section[contentKey] as string, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+    const newFeatures = [...content.features];
+    newFeatures[index] = value;
+    updateJsonContent(sectionId, lang, 'features', newFeatures);
+  };
+
   const activeSection = sections.find(s => s.id === activeSectionId);
+
+  const renderHeroEditor = (section: LandingSection) => {
+    const contentHu = parseJsonContent<HeroContent>(section.content_hu, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+    const contentEn = parseJsonContent<HeroContent>(section.content_en, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+    const contentEs = parseJsonContent<HeroContent>(section.content_es, { 
+      intro: '', slogan: '', slogan2: '', features: [], cta_button: '', join_title: '', join_subtitle: '' 
+    });
+
+    return (
+      <Tabs defaultValue="hu" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsTrigger value="hu">Magyar</TabsTrigger>
+          <TabsTrigger value="en">English</TabsTrigger>
+          <TabsTrigger value="es">Español</TabsTrigger>
+        </TabsList>
+
+        {(['hu', 'en', 'es'] as const).map((lang) => {
+          const content = lang === 'hu' ? contentHu : lang === 'en' ? contentEn : contentEs;
+          const labels = {
+            hu: { title: 'Főcím', subtitle: 'Alcím', intro: 'Bevezető szöveg', slogan: 'Szlogen', slogan2: 'Második szlogen', features: 'Feature lista', cta: 'CTA gomb szöveg', joinTitle: 'Csatlakozz cím', joinSubtitle: 'Csatlakozz alcím' },
+            en: { title: 'Title', subtitle: 'Subtitle', intro: 'Intro text', slogan: 'Slogan', slogan2: 'Second slogan', features: 'Feature list', cta: 'CTA button text', joinTitle: 'Join title', joinSubtitle: 'Join subtitle' },
+            es: { title: 'Título', subtitle: 'Subtítulo', intro: 'Texto introductorio', slogan: 'Eslogan', slogan2: 'Segundo eslogan', features: 'Lista de características', cta: 'Texto del botón CTA', joinTitle: 'Título únete', joinSubtitle: 'Subtítulo únete' }
+          };
+          const l = labels[lang];
+
+          return (
+            <TabsContent key={lang} value={lang} className="space-y-4 mt-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">{l.title}</Label>
+                  <Input
+                    value={section[`title_${lang}` as keyof LandingSection] as string}
+                    onChange={(e) => updateSection(section.id, { [`title_${lang}`]: e.target.value })}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{l.subtitle}</Label>
+                  <Input
+                    value={section[`subtitle_${lang}` as keyof LandingSection] as string || ''}
+                    onChange={(e) => updateSection(section.id, { [`subtitle_${lang}`]: e.target.value })}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">{l.intro}</Label>
+                <Textarea
+                  value={content.intro || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'intro', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">{l.slogan}</Label>
+                  <Input
+                    value={content.slogan || ''}
+                    onChange={(e) => updateJsonContent(section.id, lang, 'slogan', e.target.value)}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{l.slogan2}</Label>
+                  <Input
+                    value={content.slogan2 || ''}
+                    onChange={(e) => updateJsonContent(section.id, lang, 'slogan2', e.target.value)}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground mb-2 block">{l.features}</Label>
+                <div className="space-y-2">
+                  {(content.features || []).map((feature, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={feature}
+                        onChange={(e) => updateFeature(section.id, lang, index, e.target.value)}
+                        className="bg-muted border-border text-foreground flex-1"
+                        placeholder={`Feature ${index + 1}`}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFeature(section.id, lang, index)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addFeature(section.id, lang)}
+                    className="mt-2"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Feature hozzáadása
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">{l.cta}</Label>
+                  <Input
+                    value={content.cta_button || ''}
+                    onChange={(e) => updateJsonContent(section.id, lang, 'cta_button', e.target.value)}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{l.joinTitle}</Label>
+                  <Input
+                    value={content.join_title || ''}
+                    onChange={(e) => updateJsonContent(section.id, lang, 'join_title', e.target.value)}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">{l.joinSubtitle}</Label>
+                  <Input
+                    value={content.join_subtitle || ''}
+                    onChange={(e) => updateJsonContent(section.id, lang, 'join_subtitle', e.target.value)}
+                    className="bg-muted border-border text-foreground mt-1"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    );
+  };
+
+  const renderBioEditor = (section: LandingSection) => {
+    const contentHu = parseJsonContent<BioContent>(section.content_hu, { text1: '', text2: '' });
+    const contentEn = parseJsonContent<BioContent>(section.content_en, { text1: '', text2: '' });
+    const contentEs = parseJsonContent<BioContent>(section.content_es, { text1: '', text2: '' });
+
+    return (
+      <Tabs defaultValue="hu" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-muted">
+          <TabsTrigger value="hu">Magyar</TabsTrigger>
+          <TabsTrigger value="en">English</TabsTrigger>
+          <TabsTrigger value="es">Español</TabsTrigger>
+        </TabsList>
+
+        {(['hu', 'en', 'es'] as const).map((lang) => {
+          const content = lang === 'hu' ? contentHu : lang === 'en' ? contentEn : contentEs;
+          
+          return (
+            <TabsContent key={lang} value={lang} className="space-y-4 mt-4">
+              <div>
+                <Label className="text-muted-foreground">Cím</Label>
+                <Input
+                  value={section[`title_${lang}` as keyof LandingSection] as string}
+                  onChange={(e) => updateSection(section.id, { [`title_${lang}`]: e.target.value })}
+                  className="bg-muted border-border text-foreground mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Első bekezdés</Label>
+                <Textarea
+                  value={content.text1 || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'text1', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                  rows={4}
+                />
+              </div>
+              <div>
+                <Label className="text-muted-foreground">Második bekezdés</Label>
+                <Textarea
+                  value={content.text2 || ''}
+                  onChange={(e) => updateJsonContent(section.id, lang, 'text2', e.target.value)}
+                  className="bg-muted border-border text-foreground mt-1"
+                  rows={4}
+                />
+              </div>
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    );
+  };
+
+  const renderDefaultEditor = (section: LandingSection) => (
+    <Tabs defaultValue="hu" className="w-full">
+      <TabsList className="grid w-full grid-cols-3 bg-muted">
+        <TabsTrigger value="hu">Magyar</TabsTrigger>
+        <TabsTrigger value="en">English</TabsTrigger>
+        <TabsTrigger value="es">Español</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="hu" className="space-y-4 mt-4">
+        <div>
+          <Label className="text-muted-foreground">Cím (HU)</Label>
+          <Input
+            value={section.title_hu}
+            onChange={(e) => updateSection(section.id, { title_hu: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Alcím (HU)</Label>
+          <Input
+            value={section.subtitle_hu || ""}
+            onChange={(e) => updateSection(section.id, { subtitle_hu: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            placeholder="Opcionális alcím..."
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Tartalom (HU)</Label>
+          <Textarea
+            value={section.content_hu}
+            onChange={(e) => updateSection(section.id, { content_hu: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            rows={6}
+            placeholder="Használj dupla sortörést új bekezdéshez..."
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="en" className="space-y-4 mt-4">
+        <div>
+          <Label className="text-muted-foreground">Title (EN)</Label>
+          <Input
+            value={section.title_en}
+            onChange={(e) => updateSection(section.id, { title_en: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Subtitle (EN)</Label>
+          <Input
+            value={section.subtitle_en || ""}
+            onChange={(e) => updateSection(section.id, { subtitle_en: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            placeholder="Optional subtitle..."
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Content (EN)</Label>
+          <Textarea
+            value={section.content_en}
+            onChange={(e) => updateSection(section.id, { content_en: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            rows={6}
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="es" className="space-y-4 mt-4">
+        <div>
+          <Label className="text-muted-foreground">Título (ES)</Label>
+          <Input
+            value={section.title_es}
+            onChange={(e) => updateSection(section.id, { title_es: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Subtítulo (ES)</Label>
+          <Input
+            value={section.subtitle_es || ""}
+            onChange={(e) => updateSection(section.id, { subtitle_es: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            placeholder="Subtítulo opcional..."
+          />
+        </div>
+        <div>
+          <Label className="text-muted-foreground">Contenido (ES)</Label>
+          <Textarea
+            value={section.content_es}
+            onChange={(e) => updateSection(section.id, { content_es: e.target.value })}
+            className="bg-muted border-border text-foreground mt-1"
+            rows={6}
+          />
+        </div>
+      </TabsContent>
+    </Tabs>
+  );
 
   if (loading) {
     return (
@@ -277,7 +645,7 @@ export default function LandingPageAdmin() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {(activeSection.image_urls || []).map((url, index) => (
                       <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <img src={url} alt="" className="w-full h-full object-cover object-center" />
                         <Button
                           type="button"
                           variant="destructive"
@@ -318,102 +686,10 @@ export default function LandingPageAdmin() {
                   />
                 </div>
 
-                {/* Content Editor */}
-                <Tabs defaultValue="hu" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 bg-muted">
-                    <TabsTrigger value="hu">Magyar</TabsTrigger>
-                    <TabsTrigger value="en">English</TabsTrigger>
-                    <TabsTrigger value="es">Español</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="hu" className="space-y-4 mt-4">
-                    <div>
-                      <Label className="text-muted-foreground">Cím (HU)</Label>
-                      <Input
-                        value={activeSection.title_hu}
-                        onChange={(e) => updateSection(activeSection.id, { title_hu: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Alcím (HU)</Label>
-                      <Input
-                        value={activeSection.subtitle_hu || ""}
-                        onChange={(e) => updateSection(activeSection.id, { subtitle_hu: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        placeholder="Opcionális alcím..."
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Tartalom (HU)</Label>
-                      <Textarea
-                        value={activeSection.content_hu}
-                        onChange={(e) => updateSection(activeSection.id, { content_hu: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        rows={6}
-                        placeholder="Használj dupla sortörést új bekezdéshez..."
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="en" className="space-y-4 mt-4">
-                    <div>
-                      <Label className="text-muted-foreground">Title (EN)</Label>
-                      <Input
-                        value={activeSection.title_en}
-                        onChange={(e) => updateSection(activeSection.id, { title_en: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Subtitle (EN)</Label>
-                      <Input
-                        value={activeSection.subtitle_en || ""}
-                        onChange={(e) => updateSection(activeSection.id, { subtitle_en: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        placeholder="Optional subtitle..."
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Content (EN)</Label>
-                      <Textarea
-                        value={activeSection.content_en}
-                        onChange={(e) => updateSection(activeSection.id, { content_en: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        rows={6}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="es" className="space-y-4 mt-4">
-                    <div>
-                      <Label className="text-muted-foreground">Título (ES)</Label>
-                      <Input
-                        value={activeSection.title_es}
-                        onChange={(e) => updateSection(activeSection.id, { title_es: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Subtítulo (ES)</Label>
-                      <Input
-                        value={activeSection.subtitle_es || ""}
-                        onChange={(e) => updateSection(activeSection.id, { subtitle_es: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        placeholder="Subtítulo opcional..."
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-muted-foreground">Contenido (ES)</Label>
-                      <Textarea
-                        value={activeSection.content_es}
-                        onChange={(e) => updateSection(activeSection.id, { content_es: e.target.value })}
-                        className="bg-muted border-border text-foreground mt-1"
-                        rows={6}
-                      />
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                {/* Content Editor based on section type */}
+                {activeSection.section_key === 'hero' && renderHeroEditor(activeSection)}
+                {activeSection.section_key === 'bio' && renderBioEditor(activeSection)}
+                {!['hero', 'bio'].includes(activeSection.section_key) && renderDefaultEditor(activeSection)}
               </CardContent>
             </>
           ) : (
