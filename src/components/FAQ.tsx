@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -5,28 +6,73 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+
+interface FaqItem {
+  id: string;
+  question_hu: string;
+  question_en: string;
+  question_es: string;
+  answer_hu: string;
+  answer_en: string;
+  answer_es: string;
+  display_order: number;
+}
 
 export const FAQ = () => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const faqs = [
-    {
-      question: t('faq.q1'),
-      answer: t('faq.a1'),
-    },
-    {
-      question: t('faq.q2'),
-      answer: t('faq.a2'),
-    },
-    {
-      question: t('faq.q3'),
-      answer: t('faq.a3'),
-    },
-    {
-      question: t('faq.q4'),
-      answer: t('faq.a4'),
-    },
-  ];
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      const { data, error } = await supabase
+        .from('faqs')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (!error && data) {
+        setFaqs(data);
+      }
+      setLoading(false);
+    };
+
+    fetchFaqs();
+  }, []);
+
+  const getQuestion = (faq: FaqItem) => {
+    switch (language) {
+      case 'en': return faq.question_en;
+      case 'es': return faq.question_es;
+      default: return faq.question_hu;
+    }
+  };
+
+  const getAnswer = (faq: FaqItem) => {
+    switch (language) {
+      case 'en': return faq.answer_en;
+      case 'es': return faq.answer_es;
+      default: return faq.answer_hu;
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="py-12 sm:py-16 md:py-20 px-3 sm:px-4 md:px-8">
+        <div className="container mx-auto max-w-3xl">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/3 mx-auto"></div>
+            <div className="h-16 bg-muted rounded"></div>
+            <div className="h-16 bg-muted rounded"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (faqs.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-12 sm:py-16 md:py-20 px-3 sm:px-4 md:px-8">
@@ -39,15 +85,15 @@ export const FAQ = () => {
         <Accordion type="single" collapsible className="space-y-2 sm:space-y-3 md:space-y-4">
           {faqs.map((faq, index) => (
             <AccordionItem
-              key={index}
+              key={faq.id}
               value={`item-${index}`}
               className="border border-border rounded-lg px-3 sm:px-4 md:px-6 bg-card"
             >
               <AccordionTrigger className="text-left text-foreground font-semibold hover:text-primary text-xs sm:text-sm md:text-base py-2 sm:py-3 md:py-4">
-                {faq.question}
+                {getQuestion(faq)}
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground text-xs sm:text-sm md:text-base">
-                {faq.answer}
+                {getAnswer(faq)}
               </AccordionContent>
             </AccordionItem>
           ))}
