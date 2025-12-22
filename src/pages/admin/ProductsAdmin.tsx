@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, BookOpen, Package, Star, Tag, GripVertical, Briefcase } from "lucide-react";
+import { Plus, Pencil, Trash2, BookOpen, Package, Star, Tag, GripVertical, Briefcase, Upload, X, ImageIcon } from "lucide-react";
 
 // Product types
 interface Product {
@@ -133,6 +133,8 @@ export default function ProductsAdmin() {
   const [productFormData, setProductFormData] = useState<Omit<Product, 'id' | 'created_at'>>(emptyProduct);
   const [savingProduct, setSavingProduct] = useState(false);
   const [productFilter, setProductFilter] = useState<'all' | 'DIGITAL' | 'PHYSICAL'>('all');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Services state
   const [services, setServices] = useState<Service[]>([]);
@@ -275,6 +277,53 @@ export default function ProductsAdmin() {
       .eq('id', product.id);
 
     if (!error) fetchProducts();
+  };
+
+  // Cover image upload
+  const handleCoverUpload = async (file: File) => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Csak JPG, PNG, WebP vagy GIF formátum engedélyezett');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('A fájl mérete maximum 5MB lehet');
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('book-covers')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('book-covers')
+        .getPublicUrl(fileName);
+
+      setProductFormData(prev => ({ ...prev, cover_image_url: publicUrl }));
+      toast.success('Borítókép feltöltve!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Hiba a feltöltés során');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setProductFormData(prev => ({ ...prev, cover_image_url: '' }));
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
   };
 
   // Services functions
@@ -930,14 +979,52 @@ export default function ProductsAdmin() {
               />
             </div>
 
-            <div>
-              <Label className="text-gray-300">Borító URL</Label>
-              <Input
-                value={productFormData.cover_image_url || ''}
-                onChange={(e) => setProductFormData({ ...productFormData, cover_image_url: e.target.value })}
-                placeholder="https://..."
-                className="bg-gray-800 border-gray-700 text-white"
-              />
+            <div className="md:col-span-2">
+              <Label className="text-gray-300">Borítókép</Label>
+              <div className="mt-2">
+                {productFormData.cover_image_url ? (
+                  <div className="relative inline-block">
+                    <img 
+                      src={productFormData.cover_image_url} 
+                      alt="Borítókép előnézet" 
+                      className="w-40 h-56 object-cover rounded-lg border border-gray-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveCover}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-40 h-56 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors bg-gray-800/50">
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleCoverUpload(file);
+                      }}
+                      className="hidden"
+                      disabled={uploadingCover}
+                    />
+                    {uploadingCover ? (
+                      <div className="flex flex-col items-center gap-2 text-gray-400">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                        <span className="text-sm">Feltöltés...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-gray-400">
+                        <ImageIcon className="w-10 h-10" />
+                        <span className="text-sm text-center px-2">Kattints a feltöltéshez</span>
+                        <span className="text-xs">JPG, PNG, WebP (max 5MB)</span>
+                      </div>
+                    )}
+                  </label>
+                )}
+              </div>
             </div>
 
             {productFormData.product_type === 'DIGITAL' && (
