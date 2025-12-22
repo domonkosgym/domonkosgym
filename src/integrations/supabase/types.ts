@@ -808,6 +808,63 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_page_sections: {
+        Row: {
+          content_en: string
+          content_es: string
+          content_hu: string
+          created_at: string | null
+          id: string
+          image_urls: string[] | null
+          is_active: boolean | null
+          section_key: string
+          sort_order: number | null
+          subtitle_en: string | null
+          subtitle_es: string | null
+          subtitle_hu: string | null
+          title_en: string
+          title_es: string
+          title_hu: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_en?: string
+          content_es?: string
+          content_hu?: string
+          created_at?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          section_key: string
+          sort_order?: number | null
+          subtitle_en?: string | null
+          subtitle_es?: string | null
+          subtitle_hu?: string | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_en?: string
+          content_es?: string
+          content_hu?: string
+          created_at?: string | null
+          id?: string
+          image_urls?: string[] | null
+          is_active?: boolean | null
+          section_key?: string
+          sort_order?: number | null
+          subtitle_en?: string | null
+          subtitle_es?: string | null
+          subtitle_hu?: string | null
+          title_en?: string
+          title_es?: string
+          title_hu?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       lead_scores: {
         Row: {
           form_interactions: number | null

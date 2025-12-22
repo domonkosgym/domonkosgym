@@ -70,16 +70,6 @@ const menuItems = [
     icon: ListOrdered,
   },
   {
-    title: "Főoldal Képek",
-    url: "/admin/site-images",
-    icon: Image,
-  },
-  {
-    title: "Rólam oldal",
-    url: "/admin/about",
-    icon: User,
-  },
-  {
     title: "Számlák",
     url: "/admin/invoices",
     icon: Receipt,
@@ -103,6 +93,21 @@ const menuItems = [
     title: "Számlázz.hu",
     url: "/admin/szamlazz",
     icon: Settings,
+  },
+  {
+    title: "Főoldal",
+    url: "/admin/landing",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Főoldal Képek",
+    url: "/admin/site-images",
+    icon: Image,
+  },
+  {
+    title: "Rólam oldal",
+    url: "/admin/about",
+    icon: User,
   },
   {
     title: "Tartalom (CMS)",

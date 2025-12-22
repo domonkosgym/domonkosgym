@@ -34,6 +34,7 @@ import FeaturedLinksAdmin from "./pages/admin/FeaturedLinksAdmin";
 import ProcessStepsAdmin from "./pages/admin/ProcessStepsAdmin";
 import AboutAdmin from "./pages/admin/AboutAdmin";
 import SiteImagesAdmin from "./pages/admin/SiteImagesAdmin";
+import LandingPageAdmin from "./pages/admin/LandingPageAdmin";
 import About from "./pages/About";
 import Unsubscribe from "./pages/Unsubscribe";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="process-steps" element={<ProcessStepsAdmin />} />
               <Route path="about" element={<AboutAdmin />} />
               <Route path="site-images" element={<SiteImagesAdmin />} />
+              <Route path="landing" element={<LandingPageAdmin />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
