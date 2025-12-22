@@ -138,7 +138,8 @@ const defaultTranslations: Record<Language, any> = {
     nav: {
       home: 'FŐOLDAL',
       about: 'RÓLAM',
-      services: 'SZOLGÁLTATÁSOK'
+      services: 'SZOLGÁLTATÁSOK',
+      knowledge: 'TUDÁSTÁR'
     },
     hero: {
       consultation: 'KONZULTÁCIÓ',
@@ -279,7 +280,8 @@ const defaultTranslations: Record<Language, any> = {
     nav: {
       home: 'HOME',
       about: 'ABOUT',
-      services: 'SERVICES'
+      services: 'SERVICES',
+      knowledge: 'KNOWLEDGE BASE'
     },
     hero: {
       consultation: 'CONSULTATION',
@@ -420,7 +422,8 @@ const defaultTranslations: Record<Language, any> = {
     nav: {
       home: 'INICIO',
       about: 'SOBRE MÍ',
-      services: 'SERVICIOS'
+      services: 'SERVICIOS',
+      knowledge: 'BASE DE CONOCIMIENTO'
     },
     hero: {
       consultation: 'CONSULTA',
