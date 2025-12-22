@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import workoutImage from "@/assets/workout-1.jpg";
 
 interface HeroProps {
@@ -19,13 +19,6 @@ interface HeroContent {
   cta_button: string;
   join_title: string;
   join_subtitle: string;
-}
-
-interface HeroData {
-  title: string;
-  subtitle: string;
-  content: HeroContent;
-  image_url: string | null;
 }
 
 const defaultContent: Record<string, HeroContent> = {
@@ -61,43 +54,40 @@ const defaultContent: Record<string, HeroContent> = {
 export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
   const { language, t } = useLanguage();
   const { trackCTAClick } = useAnalytics();
-  const [heroData, setHeroData] = useState<HeroData | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchHeroData = async () => {
+  const { data: heroData, isLoading } = useQuery({
+    queryKey: ["hero-section", language],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('landing_page_sections')
         .select('*')
         .eq('section_key', 'hero')
         .maybeSingle();
 
-      if (!error && data) {
-        const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
-        const contentField = `content${langSuffix}` as keyof typeof data;
-        const titleField = `title${langSuffix}` as keyof typeof data;
-        const subtitleField = `subtitle${langSuffix}` as keyof typeof data;
-        
-        let parsedContent: HeroContent;
-        try {
-          const rawContent = data[contentField] as string;
-          parsedContent = rawContent ? JSON.parse(rawContent) : defaultContent[language];
-        } catch {
-          parsedContent = defaultContent[language];
-        }
+      if (error || !data) return null;
 
-        setHeroData({
-          title: (data[titleField] as string) || defaultContent[language].slogan,
-          subtitle: (data[subtitleField] as string) || "THE COACH",
-          content: parsedContent,
-          image_url: data.image_urls?.[0] || null
-        });
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      const contentField = `content${langSuffix}` as keyof typeof data;
+      const titleField = `title${langSuffix}` as keyof typeof data;
+      const subtitleField = `subtitle${langSuffix}` as keyof typeof data;
+      
+      let parsedContent: HeroContent;
+      try {
+        const rawContent = data[contentField] as string;
+        parsedContent = rawContent ? JSON.parse(rawContent) : defaultContent[language];
+      } catch {
+        parsedContent = defaultContent[language];
       }
-      setLoading(false);
-    };
 
-    fetchHeroData();
-  }, [language]);
+      return {
+        title: (data[titleField] as string) || defaultContent[language].slogan,
+        subtitle: (data[subtitleField] as string) || "THE COACH",
+        content: parsedContent,
+        image_url: data.image_urls?.[0] || null
+      };
+    },
+    staleTime: 0, // Always refetch
+  });
 
   const content = heroData?.content || defaultContent[language];
   const title = heroData?.title || "DOMONKOS ZSOLT";

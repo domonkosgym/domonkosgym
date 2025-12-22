@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface SloganContent {
   text: string;
@@ -8,33 +8,33 @@ interface SloganContent {
 
 export const TrainHardSlogan = () => {
   const { language, t } = useLanguage();
-  const [content, setContent] = useState<SloganContent | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const { data: content } = useQuery({
+    queryKey: ["train-hard-section", language],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('landing_page_sections')
         .select('*')
         .eq('section_key', 'train_hard')
         .maybeSingle();
 
-      if (!error && data) {
-        const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
-        const contentField = `content${langSuffix}` as keyof typeof data;
-        
-        try {
-          const rawContent = data[contentField] as string;
-          if (rawContent) {
-            setContent(JSON.parse(rawContent));
-          }
-        } catch {
-          // fallback to translation
-        }
-      }
-    };
+      if (error || !data) return null;
 
-    fetchData();
-  }, [language]);
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      const contentField = `content${langSuffix}` as keyof typeof data;
+      
+      try {
+        const rawContent = data[contentField] as string;
+        if (rawContent) {
+          return JSON.parse(rawContent) as SloganContent;
+        }
+      } catch {
+        // fallback
+      }
+      return null;
+    },
+    staleTime: 0,
+  });
 
   // Parse the text to split into two parts for styling
   const displayText = content?.text || `${t('hero.trainHard')} ${t('hero.liveBetter')}`;

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -7,6 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface FaqItem {
   id: string;
@@ -21,24 +21,20 @@ interface FaqItem {
 
 export const FAQ = () => {
   const { language, t } = useLanguage();
-  const [faqs, setFaqs] = useState<FaqItem[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchFaqs = async () => {
+  const { data: faqs = [], isLoading } = useQuery({
+    queryKey: ["faqs"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('faqs')
         .select('*')
         .order('display_order', { ascending: true });
 
-      if (!error && data) {
-        setFaqs(data);
-      }
-      setLoading(false);
-    };
-
-    fetchFaqs();
-  }, []);
+      if (error) throw error;
+      return data as FaqItem[];
+    },
+    staleTime: 0,
+  });
 
   const getQuestion = (faq: FaqItem) => {
     switch (language) {
@@ -56,7 +52,7 @@ export const FAQ = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <section className="py-12 sm:py-16 md:py-20 px-3 sm:px-4 md:px-8">
         <div className="container mx-auto max-w-3xl">
