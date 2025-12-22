@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Package, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +27,37 @@ interface Product {
   sale_price: number | null;
 }
 
+interface SectionData {
+  title: string;
+  subtitle: string | null;
+}
+
 export default function Tudastar() {
   const { language, t } = useLanguage();
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Fetch section title/subtitle from landing_page_sections (same as BooksSection)
+  const { data: sectionData } = useQuery({
+    queryKey: ["books-section", language],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('landing_page_sections')
+        .select('title_hu, title_en, title_es, subtitle_hu, subtitle_en, subtitle_es')
+        .eq('section_key', 'books')
+        .maybeSingle();
+
+      if (error || !data) return { title: t('books.title'), subtitle: t('books.subtitle') };
+
+      const langSuffix = language === 'hu' ? '_hu' : language === 'en' ? '_en' : '_es';
+      return {
+        title: (data[`title${langSuffix}` as keyof typeof data] as string) || t('books.title'),
+        subtitle: data[`subtitle${langSuffix}` as keyof typeof data] as string | null
+      };
+    },
+    staleTime: 0,
+  });
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -70,38 +97,6 @@ export default function Tudastar() {
     return type === 'DIGITAL' ? t('books.digital') : t('books.physical');
   };
 
-  const getLabels = () => {
-    const labels: Record<string, Record<string, string>> = {
-      hu: {
-        title: 'Tudástár',
-        subtitle: 'Fedezd fel a könyveimet és tananyagaimat',
-        featured: 'Kiemelt',
-        sale: 'Akció',
-        viewDetails: 'Részletek',
-        back: 'Vissza'
-      },
-      en: {
-        title: 'Knowledge Base',
-        subtitle: 'Discover my books and learning materials',
-        featured: 'Featured',
-        sale: 'Sale',
-        viewDetails: 'View Details',
-        back: 'Back'
-      },
-      es: {
-        title: 'Base de Conocimiento',
-        subtitle: 'Descubre mis libros y materiales de aprendizaje',
-        featured: 'Destacado',
-        sale: 'Oferta',
-        viewDetails: 'Ver Detalles',
-        back: 'Volver'
-      }
-    };
-    return labels[language] || labels.hu;
-  };
-
-  const labels = getLabels();
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -126,7 +121,7 @@ export default function Tudastar() {
               {t('nav.services')}
             </Link>
             <Link to="/tudastar" className="text-primary text-xs md:text-sm uppercase tracking-wider font-bold">
-              {labels.title}
+              {t('nav.knowledge')}
             </Link>
           </div>
           <div className="flex items-center gap-4">
@@ -145,10 +140,10 @@ export default function Tudastar() {
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground uppercase mb-2">
-            {labels.title}
+            {sectionData?.title || t('books.title')}
           </h1>
           <p className="text-muted-foreground text-sm md:text-base">
-            {labels.subtitle}
+            {sectionData?.subtitle || t('books.subtitle')}
           </p>
         </div>
       </div>
@@ -188,12 +183,12 @@ export default function Tudastar() {
                     <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                       {product.is_featured && (
                         <Badge className="bg-primary text-primary-foreground font-bold uppercase text-xs px-2 py-1">
-                          {labels.featured}
+                          {t('books.featured')}
                         </Badge>
                       )}
                       {product.is_on_sale && (
                         <Badge className="bg-destructive text-destructive-foreground font-bold uppercase text-xs px-2 py-1">
-                          {labels.sale}
+                          {t('books.sale')}
                         </Badge>
                       )}
                     </div>
@@ -245,7 +240,7 @@ export default function Tudastar() {
                         navigate(`/book/${product.id}`);
                       }}
                     >
-                      {labels.viewDetails}
+                      {t('books.viewDetails')}
                     </Button>
                   </div>
                 </div>

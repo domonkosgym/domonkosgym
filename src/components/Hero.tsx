@@ -113,7 +113,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
           <a href="/" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.home')}</a>
           <a href="/about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
           <a href="/services" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.services')}</a>
-          <a href="/tudastar" className="hidden sm:block text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.knowledge') || 'Tudástár'}</a>
+          <a href="/tudastar" className="hidden sm:block text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.knowledge')}</a>
           {/* Foglalj helyet button on mobile and tablet */}
           <Button
             onClick={handleReserveClick}
