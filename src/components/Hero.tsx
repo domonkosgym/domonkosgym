@@ -1,11 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { CartIcon } from "@/components/CartIcon";
+import { Header } from "@/components/Header";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import workoutImage from "@/assets/workout-1.jpg";
 
 interface HeroProps {
   onBookConsultation: () => void;
@@ -87,7 +85,7 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
         image_url: data.image_urls?.[0] || null
       };
     },
-    staleTime: 0, // Always refetch
+    staleTime: 0,
   });
 
   const content = heroData?.content || defaultContent[language];
@@ -100,41 +98,10 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
     onViewPricing();
   };
 
-  const handleViewClassesClick = () => {
-    trackCTAClick(t('hero.viewClasses'), 'secondary_cta');
-    onViewPricing();
-  };
-
   return (
     <div className="relative min-h-screen bg-background overflow-hidden">
-      {/* Top Navigation */}
-      <nav className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center px-2 sm:px-4 md:px-12 py-3 md:py-6 gap-2">
-        <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
-          <a href="/" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.home')}</a>
-          <a href="/about" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.about')}</a>
-          <a href="/services" className="text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.services')}</a>
-          <a href="/tudastar" className="hidden sm:block text-foreground text-[10px] sm:text-xs md:text-sm uppercase tracking-wider hover:text-primary transition whitespace-nowrap">{t('nav.knowledge')}</a>
-          {/* Foglalj helyet button on mobile and tablet */}
-          <Button
-            onClick={handleReserveClick}
-            className="lg:hidden bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-[10px] sm:text-xs px-2 sm:px-4 whitespace-nowrap h-7 sm:h-8"
-          >
-            {content.cta_button}
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2 sm:gap-4">
-          <LanguageSelector />
-          <CartIcon />
-          {/* Desktop button */}
-          <Button
-            onClick={handleReserveClick}
-            className="hidden lg:block bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase text-xs sm:text-sm px-4 sm:px-6 whitespace-nowrap"
-          >
-            {content.cta_button}
-          </Button>
-        </div>
-      </nav>
+      {/* Top Navigation - unified header */}
+      <Header onCtaClick={handleReserveClick} ctaText={content.cta_button} />
 
       {/* Main Hero Section */}
       <div className="relative flex flex-col lg:flex-row min-h-screen">
@@ -191,15 +158,17 @@ export const Hero = ({ onBookConsultation, onViewPricing }: HeroProps) => {
 
         {/* Right Side - Large Image */}
         <div className="w-full lg:w-1/2 relative min-h-[40vh] lg:min-h-screen bg-muted">
-          {isLoading && (
+          {(isLoading || !heroImage) && (
             <div className="absolute inset-0 bg-muted animate-pulse" />
           )}
-          <img
-            src={heroImage || workoutImage}
-            alt="Training Hard"
-            className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
-            loading="eager"
-          />
+          {heroImage && (
+            <img
+              src={heroImage}
+              alt="Training Hard"
+              className="absolute inset-0 w-full h-full object-cover object-[center_20%]"
+              loading="eager"
+            />
+          )}
         </div>
       </div>
 

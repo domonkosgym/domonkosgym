@@ -10,9 +10,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { BookOpen, Package, ShoppingCart, ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { CartIcon } from "@/components/CartIcon";
+import { BookOpen, Package, ShoppingCart, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Header } from "@/components/Header";
 
 interface Product {
   id: string;
@@ -498,25 +497,10 @@ export default function BookDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/tudastar')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {labels.back}
-          </Button>
-          <div className="flex items-center gap-2">
-            <LanguageSelector />
-            <CartIcon />
-          </div>
-        </div>
-      </div>
+      {/* Unified Header */}
+      <Header />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-20 md:pt-24 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Left Column - Purchase Flow */}
           <div className="order-2 lg:order-1">

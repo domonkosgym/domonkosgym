@@ -12,10 +12,9 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Package, Download } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, Package, Download } from "lucide-react";
 import { Footer } from "@/components/Footer";
-import { LanguageSelector } from "@/components/LanguageSelector";
-import { CartIcon } from "@/components/CartIcon";
+import { Header } from "@/components/Header";
 
 interface ShippingProvider {
   id: string;
@@ -241,18 +240,9 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
-        <nav className="flex justify-between items-center px-4 md:px-12 py-4">
-          <Button variant="ghost" onClick={() => navigate('/')} className="flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Vissza
-          </Button>
-          <div className="flex items-center gap-2">
-            <LanguageSelector />
-            <CartIcon />
-          </div>
-        </nav>
+        <Header />
         
-        <div className="container mx-auto px-4 py-16 text-center">
+        <div className="container mx-auto px-4 pt-20 md:pt-24 py-16 text-center">
           <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
           <h1 className="text-2xl font-bold mb-2">A kosár üres</h1>
           <p className="text-muted-foreground mb-6">Nézd meg a kínálatunkat és válaszd ki a neked tetsző termékeket!</p>
@@ -267,18 +257,9 @@ export default function CartPage() {
   
   return (
     <div className="min-h-screen bg-background">
-      <nav className="flex justify-between items-center px-4 md:px-12 py-4">
-        <Button variant="ghost" onClick={() => navigate('/tudastar')} className="flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Vissza a Tudástárhoz
-        </Button>
-        <div className="flex items-center gap-2">
-          <LanguageSelector />
-          <CartIcon />
-        </div>
-      </nav>
+      <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-20 md:pt-24 py-8">
         <h1 className="text-3xl font-bold mb-8">Kosár</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
