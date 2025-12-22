@@ -99,30 +99,35 @@ export const FeaturedIn = () => {
         </div>
 
         {/* Carousel Container */}
-        <div className="relative px-6 md:px-8">
-          {/* Navigation Arrows - Desktop */}
+        <div className="relative px-8 md:px-10">
+          {/* Navigation Arrows */}
           {links.length > 4 && (
             <>
               <button
                 onClick={scrollLeft}
                 disabled={currentIndex === 0}
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={scrollRight}
                 disabled={currentIndex >= links.length - 4}
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-primary/90 text-primary-foreground items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-primary transition shadow-lg"
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-5 h-5" />
               </button>
             </>
           )}
 
           {/* Cards Container */}
           <div className="overflow-hidden">
-            <div className="flex gap-2 sm:gap-3 md:gap-4 justify-start md:justify-center pb-2">
+            <div 
+              className="flex gap-2 sm:gap-3 md:gap-4 transition-transform duration-300 ease-out pb-2"
+              style={{
+                transform: `translateX(-${currentIndex * (212 + 16)}px)`,
+              }}
+            >
               {links.map((link) => (
                 <a
                   key={link.id}
@@ -176,15 +181,15 @@ export const FeaturedIn = () => {
             </div>
           </div>
 
-          {/* Mobile Swipe Indicator */}
-          {links.length > 4 && (
+          {/* Mobile Scroll Hint */}
+          {links.length > 2 && (
             <div className="flex justify-center gap-1.5 mt-3 md:hidden">
-              {links.map((_, index) => (
+              {Array.from({ length: Math.ceil(links.length / 2) }).map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentIndex(index)}
+                  onClick={() => setCurrentIndex(index * 2)}
                   className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    index === currentIndex ? 'bg-primary' : 'bg-muted'
+                    Math.floor(currentIndex / 2) === index ? 'bg-primary' : 'bg-muted'
                   }`}
                 />
               ))}
