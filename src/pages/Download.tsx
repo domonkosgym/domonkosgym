@@ -176,6 +176,32 @@ export default function Download() {
     setDownloading(true);
 
     try {
+      // Get signed URL from private storage bucket
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('book-files')
+        .createSignedUrl(product.file_asset_url, 60); // 60 seconds validity
+
+      if (signedUrlError || !signedUrlData?.signedUrl) {
+        // Fallback: if file_asset_url is a full URL (legacy), use it directly
+        if (product.file_asset_url.startsWith('http')) {
+          // Increment download count first
+          await supabase
+            .from('digital_entitlements')
+            .update({ download_count: entitlement.download_count + 1 })
+            .eq('id', entitlement.id);
+
+          setEntitlement({
+            ...entitlement,
+            download_count: entitlement.download_count + 1
+          });
+
+          window.open(product.file_asset_url, '_blank');
+          toast.success(labels.successDownload);
+          return;
+        }
+        throw new Error('Unable to generate download link');
+      }
+
       // Increment download count
       await supabase
         .from('digital_entitlements')
@@ -188,8 +214,8 @@ export default function Download() {
         download_count: entitlement.download_count + 1
       });
 
-      // Trigger download
-      window.open(product.file_asset_url, '_blank');
+      // Trigger download with signed URL
+      window.open(signedUrlData.signedUrl, '_blank');
       toast.success(labels.successDownload);
     } catch (err) {
       console.error('Download error:', err);

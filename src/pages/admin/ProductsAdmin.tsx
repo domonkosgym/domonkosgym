@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, BookOpen, Package, Star, Tag, GripVertical, Briefcase, Upload, X, ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, BookOpen, Package, Star, Tag, GripVertical, Briefcase, Upload, X, ImageIcon, FileText } from "lucide-react";
 
 // Product types
 interface Product {
@@ -134,7 +134,9 @@ export default function ProductsAdmin() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [productFilter, setProductFilter] = useState<'all' | 'DIGITAL' | 'PHYSICAL'>('all');
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Services state
   const [services, setServices] = useState<Service[]>([]);
@@ -323,6 +325,50 @@ export default function ProductsAdmin() {
     setProductFormData(prev => ({ ...prev, cover_image_url: '' }));
     if (coverInputRef.current) {
       coverInputRef.current.value = '';
+    }
+  };
+
+  // Digital file upload to book-files bucket
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    
+    const allowedTypes = ['application/pdf', 'application/epub+zip'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Csak PDF vagy EPUB formátum engedélyezett');
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('A fájl mérete maximum 50MB lehet');
+      return;
+    }
+
+    setUploadingFile(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('book-files')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Store the storage path (not public URL since bucket is private)
+      setProductFormData(prev => ({ ...prev, file_asset_url: fileName }));
+      toast.success('Digitális fájl feltöltve!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Hiba a feltöltés során');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setProductFormData(prev => ({ ...prev, file_asset_url: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -1001,14 +1047,60 @@ export default function ProductsAdmin() {
             </div>
 
             {productFormData.product_type === 'DIGITAL' && (
-              <div>
-                <Label className="text-gray-300">Fájl URL (PDF/EPUB)</Label>
-                <Input
-                  value={productFormData.file_asset_url || ''}
-                  onChange={(e) => setProductFormData({ ...productFormData, file_asset_url: e.target.value })}
-                  placeholder="https://..."
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
+              <div className="md:col-span-2">
+                <Label className="text-gray-300">Digitális fájl (PDF/EPUB)</Label>
+                <div className="mt-2">
+                  {productFormData.file_asset_url ? (
+                    <div className="flex items-center gap-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="p-3 rounded-lg bg-primary/20">
+                          <FileText className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">Fájl feltöltve</p>
+                          <p className="text-gray-400 text-sm truncate max-w-xs">
+                            {productFormData.file_asset_url}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center gap-4 p-6 border-2 border-dashed border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors bg-gray-800/50">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.epub,application/pdf,application/epub+zip"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                        className="hidden"
+                        disabled={uploadingFile}
+                      />
+                      {uploadingFile ? (
+                        <div className="flex items-center gap-3 text-gray-400">
+                          <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+                          <span>Feltöltés...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 text-gray-400">
+                          <Upload className="w-8 h-8" />
+                          <div>
+                            <span className="text-white font-medium">Kattints a fájl feltöltéséhez</span>
+                            <p className="text-sm">PDF vagy EPUB (max 50MB)</p>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                  )}
+                </div>
               </div>
             )}
 
