@@ -1,285 +1,455 @@
-# Független Működtetés - Teljes Útmutató
+# TheCoach.hu - Független Működtetési Útmutató
 
-Ez a dokumentáció lépésről-lépésre bemutatja, hogyan működtetheted az alkalmazást saját szerveren, saját domain alatt, függetlenül a Lovable platformtól.
+Ez a dokumentáció lépésről-lépésre bemutatja, hogyan működtetheted a TheCoach.hu alkalmazást saját szerveren, a Lovable platformtól függetlenül.
+
+---
 
 ## Tartalomjegyzék
 
-1. [Előkészületek](#1-előkészületek)
-2. [Kód exportálása](#2-kód-exportálása)
-3. [Adatbázis migrálása](#3-adatbázis-migrálása)
-4. [Szerver beállítása (MHosting)](#4-szerver-beállítása-mhosting)
-5. [Domain beállítások](#5-domain-beállítások)
-6. [Több domain átirányítása](#6-több-domain-átirányítása)
-7. [SSL tanúsítvány](#7-ssl-tanúsítvány)
-8. [Karbantartás és frissítések](#8-karbantartás-és-frissítések)
+1. [Áttekintés](#1-áttekintés)
+2. [Előkészületek](#2-előkészületek)
+3. [Forráskód exportálása](#3-forráskód-exportálása)
+4. [Adatbázis migrálása](#4-adatbázis-migrálása)
+5. [Backend beállítása](#5-backend-beállítása)
+6. [Frontend deployment](#6-frontend-deployment)
+7. [Domain és SSL beállítások](#7-domain-és-ssl-beállítások)
+8. [Tesztelés és élesítés](#8-tesztelés-és-élesítés)
+9. [Karbantartás](#9-karbantartás)
 
 ---
 
-## 1. Előkészületek
+## 1. Áttekintés
 
-### Szükséges eszközök
+### Az alkalmazás architektúrája
 
-- **Node.js** (v18 vagy újabb)
-- **Git** (verziókezeléshez)
-- **PostgreSQL** adatbázis
-- **Webszerver** (Apache vagy Nginx)
-- **SSL tanúsítvány** (Let's Encrypt ingyenes)
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Frontend      │────▶│   Supabase       │────▶│   PostgreSQL    │
+│   (React/Vite)  │     │   (vagy saját)   │     │   Adatbázis     │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+         │                      │
+         │                      │
+         ▼                      ▼
+┌─────────────────┐     ┌──────────────────┐
+│   CDN/Hosting   │     │   Edge Functions │
+│   (Vercel/etc)  │     │   (Email, Stripe)│
+└─────────────────┘     └──────────────────┘
+```
 
-### Szükséges hozzáférések
+### Szükséges komponensek
 
-- MHosting fiók cPanel hozzáféréssel
-- Domain regisztrátor hozzáférés (DNS kezeléshez)
-- SSH hozzáférés a szerverhez (opcionális, de ajánlott)
+| Komponens | Lovable verzió | Független verzió |
+|-----------|----------------|------------------|
+| Frontend | Lovable Preview | Vercel / Netlify / VPS |
+| Adatbázis | Lovable Cloud (Supabase) | Supabase / Saját PostgreSQL |
+| Auth | Supabase Auth | Supabase Auth / saját megoldás |
+| Storage | Supabase Storage | Supabase Storage / S3 / saját |
+| Edge Functions | Lovable Cloud | Supabase Edge Functions / Node.js |
+| Email | Resend | Resend / saját SMTP |
+| Fizetés | Stripe | Stripe |
 
 ---
 
-## 2. Kód exportálása
+## 2. Előkészületek
 
-### 2.1 GitHub-ról letöltés
-
-Ha a projekt GitHub-on van:
+### 2.1 Szükséges eszközök telepítése
 
 ```bash
-git clone https://github.com/felhasznalo/projekt-nev.git
-cd projekt-nev
+# Node.js (v18+)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Git
+sudo apt-get install git
+
+# PostgreSQL client (opcionális)
+sudo apt-get install postgresql-client
+```
+
+### 2.2 Szükséges fiókok
+
+1. **GitHub** - forráskód tárolás
+2. **Supabase** (ajánlott) VAGY saját PostgreSQL szerver
+3. **Vercel/Netlify** (ajánlott) VAGY VPS hosting
+4. **Resend** - email küldés (API kulcs szükséges)
+5. **Stripe** - fizetések kezelése
+
+### 2.3 Környezeti változók listája
+
+```env
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
+
+# Stripe (frontend)
+VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
+
+# Backend secrets (Edge Functions)
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+STRIPE_SECRET_KEY=sk_live_...
+RESEND_API_KEY=re_...
+FROM_EMAIL=info@thecoach.hu
+SITE_URL=https://thecoach.hu
+```
+
+---
+
+## 3. Forráskód exportálása
+
+### 3.1 GitHub-ról klónozás
+
+```bash
+# Repository klónozása
+git clone https://github.com/YOUR_USERNAME/YOUR_PROJECT.git
+cd YOUR_PROJECT
+
+# Dependencies telepítése
 npm install
 ```
 
-### 2.2 Lovable-ből közvetlen letöltés
-
-1. Nyisd meg a projektet Lovable-ben
-2. Menj a **Settings** → **GitHub** fülre
-3. Kapcsold össze a GitHub fiókoddal
-4. Klónozd a repositoryt a gépedre
-
-### 2.3 Build készítése
+### 3.2 Lokális tesztelés
 
 ```bash
+# Fejlesztői szerver indítása
+npm run dev
+
+# Build készítése
 npm run build
+
+# Build előnézet
+npm run preview
 ```
 
-Ez létrehozza a `dist` mappát, ami tartalmazza a production-ready fájlokat.
+### 3.3 Build kimenet
+
+A `dist/` mappa tartalma:
+- `index.html` - főoldal
+- `assets/` - JS, CSS, képek
+- Statikus fájlok
 
 ---
 
-## 3. Adatbázis migrálása
+## 4. Adatbázis migrálása
 
-### 3.1 Adatok exportálása
+### 4.1 Adatok exportálása (Admin felületről)
 
-1. Menj az admin felületre: `/admin/database-export`
-2. Válaszd ki az exportálandó táblákat
-3. Kattints az "Adatok letöltése" gombra
-4. Mentsd el az `.sql` fájlt
+1. Jelentkezz be: `https://thecoach.hu/admin`
+2. Navigálj: **Adatbázis Export** menüpont
+3. Válaszd ki az összes táblát
+4. Kattints: **Adatok letöltése**
+5. Mentsd el az `.sql` fájlt
 
-### 3.2 Séma exportálása
+### 4.2 Séma exportálása
 
-A séma a migrációs fájlokból áll össze:
-- `supabase/migrations/` mappa tartalmazza az összes migrációt
+A migrációs fájlok itt találhatók:
+```
+supabase/migrations/
+├── 20240101_initial_schema.sql
+├── 20240102_add_products.sql
+└── ...
+```
 
-### 3.3 Új PostgreSQL adatbázis létrehozása
+### 4.3 Új Supabase projekt létrehozása
 
-MHosting-on:
+1. Menj: https://supabase.com
+2. Hozz létre új projektet
+3. Másold ki a projekt URL-t és kulcsokat
 
-1. Jelentkezz be a cPanel-be
-2. Menj a **PostgreSQL Databases** részhez
-3. Hozz létre új adatbázist
-4. Hozz létre új felhasználót
-5. Add hozzá a felhasználót az adatbázishoz
+### 4.4 Séma importálása
 
-### 3.4 Adatok importálása
+Supabase SQL Editor-ban futtasd:
+
+```sql
+-- 1. ENUM típusok
+CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+CREATE TYPE public.order_status AS ENUM ('NEW', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED');
+CREATE TYPE public.payment_status AS ENUM ('PENDING', 'PAID', 'FAILED', 'REFUNDED');
+CREATE TYPE public.product_type AS ENUM ('DIGITAL', 'PHYSICAL');
+CREATE TYPE public.shipping_method AS ENUM ('HOME', 'BOX', 'NONE');
+
+-- 2. Táblák létrehozása
+-- (Lásd az exportált séma fájlt)
+
+-- 3. RLS szabályok
+-- (Lásd az exportált séma fájlt)
+```
+
+### 4.5 Adatok importálása
+
+```sql
+-- Futtasd az exportált adatok SQL fájlt
+-- (A trigger-eket ideiglenesen letiltja az import gyorsításához)
+```
+
+### 4.6 Storage bucket-ek létrehozása
+
+```sql
+-- Book covers (publikus)
+INSERT INTO storage.buckets (id, name, public) VALUES ('book-covers', 'book-covers', true);
+
+-- Book files (privát)
+INSERT INTO storage.buckets (id, name, public) VALUES ('book-files', 'book-files', false);
+
+-- Email attachments (privát)
+INSERT INTO storage.buckets (id, name, public) VALUES ('email_attachments', 'email_attachments', false);
+```
+
+---
+
+## 5. Backend beállítása
+
+### 5.1 Edge Functions telepítése
+
+Az Edge Functions a `supabase/functions/` mappában találhatók:
+
+```
+supabase/functions/
+├── create-cart-checkout/
+├── send-email-campaign/
+├── send-booking-confirmation/
+├── send-order-confirmation/
+├── verify-deposit-payment/
+└── ...
+```
+
+### 5.2 Supabase CLI telepítése
 
 ```bash
-psql -h localhost -U felhasznalo -d adatbazis_nev -f sema.sql
-psql -h localhost -U felhasznalo -d adatbazis_nev -f adatok.sql
+npm install -g supabase
+
+# Login
+supabase login
+
+# Link to project
+supabase link --project-ref YOUR_PROJECT_REF
 ```
 
-Vagy phpPgAdmin-on keresztül (cPanel-ben).
+### 5.3 Functions deploy
+
+```bash
+# Összes function deploy
+supabase functions deploy
+
+# Egyedi function deploy
+supabase functions deploy send-email-campaign
+```
+
+### 5.4 Secrets beállítása
+
+```bash
+# Supabase Dashboard -> Settings -> Edge Functions -> Secrets
+# VAGY CLI-vel:
+
+supabase secrets set STRIPE_SECRET_KEY=sk_live_xxx
+supabase secrets set RESEND_API_KEY=re_xxx
+supabase secrets set FROM_EMAIL=info@thecoach.hu
+supabase secrets set SITE_URL=https://thecoach.hu
+```
 
 ---
 
-## 4. Szerver beállítása (MHosting)
+## 6. Frontend deployment
 
-### 4.1 Fájlok feltöltése
+### 6.1 Vercel (ajánlott)
 
-1. Jelentkezz be a cPanel-be
-2. Nyisd meg a **File Manager**-t
-3. Navigálj a `public_html` mappába
-4. Töltsd fel a `dist` mappa tartalmát
+```bash
+# Vercel CLI telepítése
+npm install -g vercel
 
-### 4.2 .htaccess beállítása (Apache)
+# Deploy
+vercel
 
-Hozd létre/szerkeszd a `.htaccess` fájlt:
+# Production deploy
+vercel --prod
+```
+
+**Vercel Dashboard beállítások:**
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Environment Variables: add all VITE_* variables
+
+### 6.2 Netlify
+
+```bash
+# Netlify CLI
+npm install -g netlify-cli
+
+# Deploy
+netlify deploy --prod --dir=dist
+```
+
+### 6.3 Saját VPS (Apache/Nginx)
+
+**Nginx konfiguráció:**
+
+```nginx
+server {
+    listen 80;
+    server_name thecoach.hu www.thecoach.hu;
+    
+    root /var/www/thecoach.hu/dist;
+    index index.html;
+    
+    # React Router support
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    # Cache static assets
+    location /assets {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    # Gzip
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json;
+}
+```
+
+**Apache .htaccess:**
 
 ```apache
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  
-  # Handle React Router
+  RewriteRule ^index\.html$ - [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.html [L]
-  
-  # Redirect multiple domains to primary
-  RewriteCond %{HTTP_HOST} ^masik-domain\.hu$ [OR]
-  RewriteCond %{HTTP_HOST} ^www\.masik-domain\.hu$
-  RewriteRule ^(.*)$ https://fo-domain.hu/$1 [R=301,L]
-</IfModule>
-
-# Gzip compression
-<IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json
-</IfModule>
-
-# Cache static assets
-<IfModule mod_expires.c>
-  ExpiresActive On
-  ExpiresByType image/jpg "access plus 1 year"
-  ExpiresByType image/jpeg "access plus 1 year"
-  ExpiresByType image/png "access plus 1 year"
-  ExpiresByType image/webp "access plus 1 year"
-  ExpiresByType text/css "access plus 1 month"
-  ExpiresByType application/javascript "access plus 1 month"
+  RewriteRule . /index.html [L]
 </IfModule>
 ```
-
-### 4.3 Környezeti változók
-
-Hozz létre egy `.env` fájlt a szerveren:
-
-```env
-VITE_SUPABASE_URL=https://sajat-supabase-url.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sajat_kulcs
-```
-
-**Fontos:** Ha önálló backend-et használsz, cseréld le a Supabase URL-eket a saját API végpontjaidra.
 
 ---
 
-## 5. Domain beállítások
+## 7. Domain és SSL beállítások
 
-### 5.1 DNS rekordok beállítása
+### 7.1 DNS beállítások
 
-Menj a domain regisztrátorhoz (vagy MHosting DNS kezeléshez):
+A domain registrátornál (pl. domain.hu, GoDaddy):
 
 | Típus | Név | Érték | TTL |
 |-------|-----|-------|-----|
-| A | @ | [szerver IP címe] | 3600 |
-| A | www | [szerver IP címe] | 3600 |
-| CNAME | www | fo-domain.hu | 3600 |
+| A | @ | [Szerver IP] | 3600 |
+| CNAME | www | thecoach.hu | 3600 |
 
-### 5.2 MHosting-on domain hozzáadása
+Vercel esetén:
+| Típus | Név | Érték |
+|-------|-----|-------|
+| CNAME | @ | cname.vercel-dns.com |
+| CNAME | www | cname.vercel-dns.com |
 
-1. cPanel → **Addon Domains** vagy **Domains**
-2. Add meg a domain nevet
-3. Állítsd be a Document Root-ot: `public_html`
+### 7.2 SSL tanúsítvány
 
----
-
-## 6. Több domain átirányítása
-
-### 6.1 Adminisztrációs nyilvántartás
-
-Használd az admin felület **Domének** menüpontját a domainek nyilvántartásához.
-
-### 6.2 DNS beállítások minden domainhez
-
-Minden átirányítandó domainnél:
-
-1. Állítsd be az A rekordot a fő szerver IP-jére
-2. Vagy használj CNAME-et a fő domainre
-
-### 6.3 Szerver oldali átirányítás
-
-A `.htaccess` fájlban (fent már szerepel a minta).
-
-Nginx esetén:
-
-```nginx
-server {
-    listen 80;
-    server_name masik-domain.hu www.masik-domain.hu;
-    return 301 https://fo-domain.hu$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name masik-domain.hu www.masik-domain.hu;
-    ssl_certificate /path/to/cert;
-    ssl_certificate_key /path/to/key;
-    return 301 https://fo-domain.hu$request_uri;
-}
-```
-
----
-
-## 7. SSL tanúsítvány
-
-### 7.1 Let's Encrypt (ingyenes)
-
-MHosting cPanel-en:
-
-1. Menj az **SSL/TLS Status** részhez
-2. Válaszd ki a domaint
-3. Kattints az **Issue** gombra
-4. Automatikusan megújul 90 naponta
-
-### 7.2 Manuális telepítés (ha szükséges)
+**Let's Encrypt (ingyenes):**
 
 ```bash
-certbot --apache -d fo-domain.hu -d www.fo-domain.hu
+# Certbot telepítése
+sudo apt install certbot python3-certbot-nginx
+
+# Tanúsítvány beszerzése
+sudo certbot --nginx -d thecoach.hu -d www.thecoach.hu
+
+# Automatikus megújítás tesztelése
+sudo certbot renew --dry-run
 ```
+
+**Vercel/Netlify:** Automatikusan biztosít SSL-t.
 
 ---
 
-## 8. Karbantartás és frissítések
+## 8. Tesztelés és élesítés
 
-### 8.1 Frissítések telepítése
+### 8.1 Ellenőrzőlista
 
-1. Töltsd le a legújabb kódot
-2. Futtasd: `npm run build`
-3. Töltsd fel az új `dist` mappa tartalmát
+- [ ] Frontend betölt HTTPS-en
+- [ ] Bejelentkezés működik
+- [ ] Admin felület elérhető
+- [ ] Termékek megjelennek
+- [ ] Kosár és checkout működik
+- [ ] Stripe fizetés működik (teszt módban)
+- [ ] Email küldés működik
+- [ ] Időpontfoglalás működik
+- [ ] Digitális letöltés működik
 
-### 8.2 Adatbázis backup
+### 8.2 Teszt rendelés
 
-Rendszeres backup készítése:
+1. Adj kosárba egy terméket
+2. Menj a checkout-ra
+3. Használj teszt bankkártya adatokat:
+   - Kártya: `4242 4242 4242 4242`
+   - Lejárat: bármilyen jövőbeli dátum
+   - CVC: bármilyen 3 számjegy
+
+### 8.3 Admin teszt
+
+1. Jelentkezz be admin felhasználóval
+2. Ellenőrizd a rendelések listáját
+3. Küldj teszt email kampányt
+
+---
+
+## 9. Karbantartás
+
+### 9.1 Backup stratégia
 
 ```bash
-pg_dump -U felhasznalo -d adatbazis_nev > backup_$(date +%Y%m%d).sql
+# Napi adatbázis backup
+pg_dump -h db.xxx.supabase.co -U postgres -d postgres > backup_$(date +%Y%m%d).sql
+
+# Storage backup (Supabase CLI)
+supabase storage download book-covers -o ./backups/book-covers/
+supabase storage download book-files -o ./backups/book-files/
 ```
 
-### 8.3 Monitoring
+### 9.2 Monitoring
 
-- Ellenőrizd a szerver logokat
-- Állíts be uptime monitoring-ot (pl. UptimeRobot)
+- **Uptime:** UptimeRobot, Pingdom
+- **Error tracking:** Sentry
+- **Analytics:** Google Analytics, Plausible
+
+### 9.3 Frissítések
+
+```bash
+# Forráskód frissítése
+git pull origin main
+npm install
+npm run build
+
+# Vercel: automatikus deploy git push után
+# VPS: manuális upload szükséges
+```
 
 ---
 
 ## Gyakori hibák és megoldások
 
-### Fehér oldal / 404 hiba
+### "Failed to fetch" hibák
 
-- Ellenőrizd a `.htaccess` fájlt
-- Győződj meg róla, hogy az `index.html` létezik
+- Ellenőrizd a CORS beállításokat
+- Ellenőrizd a Supabase URL-t és kulcsot
+- Nézd meg a böngésző konzolt
 
-### Adatbázis kapcsolódási hiba
+### Email nem érkezik
 
-- Ellenőrizd a környezeti változókat
-- Győződj meg a PostgreSQL futásáról
+- Ellenőrizd a RESEND_API_KEY-t
+- Ellenőrizd a FROM_EMAIL domain verifikációt
+- Nézd meg az Edge Function logokat
 
-### CORS hibák
+### Stripe fizetés sikertelen
 
-- Állítsd be a megfelelő CORS header-eket a backend-en
+- Ellenőrizd a STRIPE_SECRET_KEY-t
+- Győződj meg róla, hogy éles kulcsokat használsz production-ben
+- Ellenőrizd a webhook beállításokat
 
 ---
 
 ## Támogatás
 
-Ha elakadtál, használd az alábbi forrásokat:
-- MHosting dokumentáció
-- Lovable Community Discord
-- Stack Overflow
+- **Supabase dokumentáció:** https://supabase.com/docs
+- **Vercel dokumentáció:** https://vercel.com/docs
+- **Stripe dokumentáció:** https://stripe.com/docs
 
 ---
 
-*Utolsó frissítés: 2024. december*
+*Utolsó frissítés: 2025. január*
