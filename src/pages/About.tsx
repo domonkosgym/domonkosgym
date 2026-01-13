@@ -129,30 +129,29 @@ const AboutContent = () => {
                     </div>
                   </div>
 
-                  {/* Images Side */}
+                  {/* Images Side - Egységes kártyaméret minden szekcióban */}
                   <div className={!isEven ? 'lg:col-start-1 lg:row-start-1' : ''}>
                     {hasImages ? (
-                      <div className={`grid gap-4 ${section.image_urls.length > 1 ? 'grid-cols-2' : ''}`}>
-                        {section.image_urls.slice(0, 4).map((url, imgIndex) => (
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-md">
                           <div 
-                            key={imgIndex}
-                            className={`rounded-2xl overflow-hidden shadow-xl ${
-                              section.image_urls.length === 1 ? 'aspect-[3/4] max-h-[550px]' : 
-                              section.image_urls.length === 3 && imgIndex === 0 ? 'col-span-2 aspect-video' :
-                              'aspect-[3/4]'
-                            }`}
+                            className="rounded-2xl overflow-hidden shadow-xl aspect-[3/4]"
                           >
                             <img
-                              src={url}
-                              alt={`${getTitle(section)} ${imgIndex + 1}`}
+                              src={section.image_urls[0]}
+                              alt={getTitle(section)}
                               className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500"
                             />
                           </div>
-                        ))}
+                        </div>
                       </div>
                     ) : (
-                      <div className="aspect-[3/4] max-h-[450px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                        <Icon className="w-24 h-24 text-primary/30" />
+                      <div className="flex justify-center">
+                        <div className="w-full max-w-md">
+                          <div className="aspect-[3/4] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <Icon className="w-24 h-24 text-primary/30" />
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
