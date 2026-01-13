@@ -131,6 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     // Email küldése Resend API-val
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "info@thecoach.hu";
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -138,9 +139,9 @@ const handler = async (req: Request): Promise<Response> => {
         "Authorization": `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Domonkos Fitness <onboarding@resend.dev>",
+        from: `The Coach <${fromEmail}>`,
         to: [customerEmail],
-        subject: "Foglalás megerősítve - Domonkos Fitness",
+        subject: "Foglalás megerősítve - The Coach",
         html: emailHTML,
       }),
     });
