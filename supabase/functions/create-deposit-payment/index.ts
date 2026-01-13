@@ -64,8 +64,8 @@ serve(async (req) => {
       console.log("[CREATE-DEPOSIT-PAYMENT] Found existing customer:", customerId);
     }
 
-    // Create checkout session with metadata for booking
-    const origin = req.headers.get("origin") || "https://zsoltdomonkosgym.lovable.app";
+    // Create checkout session with metadata for booking - use SITE_URL env var
+    const origin = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://www.thecoach.hu";
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
