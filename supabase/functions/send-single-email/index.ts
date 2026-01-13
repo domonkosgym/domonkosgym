@@ -120,9 +120,9 @@ serve(async (req) => {
       }
     }
 
-    // Add unsubscribe link to email
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const unsubscribeUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/unsubscribe?token=${contact.unsubscribe_token}`;
+    // Add unsubscribe link to email using SITE_URL
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://www.thecoach.hu';
+    const unsubscribeUrl = `${siteUrl}/unsubscribe?token=${contact.unsubscribe_token}`;
     
     // Prepare email body
     const textWithUnsubscribe = `${bodyText}\n\n---\nHa nem szeretnél több emailt kapni, kattints ide a leiratkozáshoz: ${unsubscribeUrl}`;
