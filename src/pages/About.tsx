@@ -107,7 +107,7 @@ const AboutContent = () => {
               key={section.id} 
               className={`py-16 ${isEven ? 'bg-background' : 'bg-muted/30'}`}
             >
-              <div className="container mx-auto px-4">
+              <div className="container mx-auto px-[10%]">
                 <div className={`grid lg:grid-cols-2 gap-12 items-center ${!isEven ? 'lg:grid-flow-dense' : ''}`}>
                   {/* Content Side */}
                   <div className={!isEven ? 'lg:col-start-2' : ''}>
@@ -129,17 +129,17 @@ const AboutContent = () => {
                     </div>
                   </div>
 
-                  {/* Images Side - 50% wider cards */}
-                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''} lg:scale-x-[1.15] lg:origin-center`}>
+                  {/* Images Side */}
+                  <div className={!isEven ? 'lg:col-start-1 lg:row-start-1' : ''}>
                     {hasImages ? (
                       <div className={`grid gap-4 ${section.image_urls.length > 1 ? 'grid-cols-2' : ''}`}>
                         {section.image_urls.slice(0, 4).map((url, imgIndex) => (
                           <div 
                             key={imgIndex}
                             className={`rounded-2xl overflow-hidden shadow-xl ${
-                              section.image_urls.length === 1 ? 'aspect-[4/5] max-h-[600px]' : 
+                              section.image_urls.length === 1 ? 'aspect-[3/4] max-h-[550px]' : 
                               section.image_urls.length === 3 && imgIndex === 0 ? 'col-span-2 aspect-video' :
-                              'aspect-[4/5]'
+                              'aspect-[3/4]'
                             }`}
                           >
                             <img
@@ -151,7 +151,7 @@ const AboutContent = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="aspect-[4/5] max-h-[500px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <div className="aspect-[3/4] max-h-[450px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <Icon className="w-24 h-24 text-primary/30" />
                       </div>
                     )}
