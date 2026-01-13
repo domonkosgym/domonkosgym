@@ -129,17 +129,17 @@ const AboutContent = () => {
                     </div>
                   </div>
 
-                  {/* Images Side */}
-                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
+                  {/* Images Side - 50% wider cards */}
+                  <div className={`${!isEven ? 'lg:col-start-1 lg:row-start-1' : ''} lg:scale-x-[1.15] lg:origin-center`}>
                     {hasImages ? (
                       <div className={`grid gap-4 ${section.image_urls.length > 1 ? 'grid-cols-2' : ''}`}>
                         {section.image_urls.slice(0, 4).map((url, imgIndex) => (
                           <div 
                             key={imgIndex}
                             className={`rounded-2xl overflow-hidden shadow-xl ${
-                              section.image_urls.length === 1 ? 'aspect-[9/16] max-h-[500px]' : 
+                              section.image_urls.length === 1 ? 'aspect-[4/5] max-h-[600px]' : 
                               section.image_urls.length === 3 && imgIndex === 0 ? 'col-span-2 aspect-video' :
-                              'aspect-[9/16]'
+                              'aspect-[4/5]'
                             }`}
                           >
                             <img
@@ -151,7 +151,7 @@ const AboutContent = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="aspect-[9/16] max-h-[400px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <div className="aspect-[4/5] max-h-[500px] rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <Icon className="w-24 h-24 text-primary/30" />
                       </div>
                     )}
