@@ -167,8 +167,9 @@ serve(async (req) => {
             has_html: !!campaign.body_html
           });
           
+          const fromEmail = Deno.env.get('FROM_EMAIL') || 'info@thecoach.hu';
           const emailData: any = {
-            from: 'Domonkos Gym <onboarding@resend.dev>',
+            from: `The Coach <${fromEmail}>`,
             to: [contact.email],
             subject: campaign.subject,
             text: textWithUnsubscribe,

@@ -128,8 +128,9 @@ serve(async (req) => {
     const textWithUnsubscribe = `${bodyText}\n\n---\nHa nem szeretnél több emailt kapni, kattints ide a leiratkozáshoz: ${unsubscribeUrl}`;
     
     // Send email via Resend REST API
+    const fromEmail = Deno.env.get('FROM_EMAIL') || 'info@thecoach.hu';
     const emailData: any = {
-      from: 'Domonkos Gym <onboarding@resend.dev>',
+      from: `The Coach <${fromEmail}>`,
       to: [contact.email],
       subject,
       text: textWithUnsubscribe,

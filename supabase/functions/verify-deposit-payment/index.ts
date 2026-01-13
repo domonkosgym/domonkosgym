@@ -112,6 +112,7 @@ serve(async (req) => {
           day: 'numeric'
         });
 
+        const fromEmail = Deno.env.get('FROM_EMAIL') || 'info@thecoach.hu';
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -119,9 +120,9 @@ serve(async (req) => {
             "Authorization": `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: "Domonkos Fitness <onboarding@resend.dev>",
+            from: `The Coach <${fromEmail}>`,
             to: [metadata.customerEmail],
-            subject: "Foglalás megerősítve - Domonkos Fitness",
+            subject: "Foglalás megerősítve - The Coach",
             html: `
               <!DOCTYPE html>
               <html>
