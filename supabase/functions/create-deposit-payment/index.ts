@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEPOSIT_PRICE_ID = "price_1SZsbmEYcGIYHnEjxUwipeWf";
+// Get Stripe Deposit Price ID from environment variable
+const DEPOSIT_PRICE_ID = Deno.env.get("STRIPE_DEPOSIT_PRICE_ID") || "price_1SZsbmEYcGIYHnEjxUwipeWf";
 
 interface DepositPaymentRequest {
   customerEmail: string;
