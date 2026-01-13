@@ -9,29 +9,53 @@ import { toast } from "sonner";
 import { Download, Database, FileCode, Info, Loader2 } from "lucide-react";
 
 const EXPORTABLE_TABLES = [
-  { name: 'about_page', label: 'Rólam oldal' },
-  { name: 'about_sections', label: 'Rólam szekciók' },
-  { name: 'availability_slots', label: 'Elérhetőségi idősávok' },
-  { name: 'blocked_time_slots', label: 'Blokkolt időpontok' },
-  { name: 'bookings', label: 'Foglalások' },
-  { name: 'cms_settings', label: 'CMS beállítások' },
-  { name: 'company_billing_info', label: 'Céges adatok' },
-  { name: 'contacts', label: 'Kapcsolatok' },
-  { name: 'domains', label: 'Domainek' },
-  { name: 'faqs', label: 'GYIK' },
-  { name: 'featured_links', label: 'Kiemelt linkek' },
-  { name: 'invoices', label: 'Számlák' },
-  { name: 'landing_page_sections', label: 'Főoldal szekciók' },
-  { name: 'leads', label: 'Érdeklődők' },
-  { name: 'orders', label: 'Rendelések' },
-  { name: 'order_items', label: 'Rendelés tételek' },
-  { name: 'process_steps', label: 'Folyamat lépések' },
-  { name: 'products', label: 'Termékek' },
-  { name: 'services', label: 'Szolgáltatások' },
-  { name: 'shipping_config', label: 'Szállítási konfig' },
-  { name: 'shipping_providers', label: 'Szállítási szolgáltatók' },
-  { name: 'site_images', label: 'Oldal képek' },
-  { name: 'theme_settings', label: 'Téma beállítások' },
+  // Content tables
+  { name: 'about_page', label: 'Rólam oldal', category: 'content' },
+  { name: 'about_sections', label: 'Rólam szekciók', category: 'content' },
+  { name: 'cms_settings', label: 'CMS beállítások', category: 'content' },
+  { name: 'faqs', label: 'GYIK', category: 'content' },
+  { name: 'featured_links', label: 'Kiemelt linkek', category: 'content' },
+  { name: 'landing_page_sections', label: 'Főoldal szekciók', category: 'content' },
+  { name: 'process_steps', label: 'Folyamat lépések', category: 'content' },
+  { name: 'site_images', label: 'Oldal képek', category: 'content' },
+  { name: 'theme_settings', label: 'Téma beállítások', category: 'content' },
+  
+  // Business tables
+  { name: 'products', label: 'Termékek', category: 'business' },
+  { name: 'services', label: 'Szolgáltatások', category: 'business' },
+  { name: 'orders', label: 'Rendelések', category: 'business' },
+  { name: 'order_items', label: 'Rendelés tételek', category: 'business' },
+  { name: 'bookings', label: 'Foglalások', category: 'business' },
+  { name: 'invoices', label: 'Számlák', category: 'business' },
+  { name: 'digital_entitlements', label: 'Digitális jogosultságok', category: 'business' },
+  
+  // Configuration tables
+  { name: 'availability_slots', label: 'Elérhetőségi idősávok', category: 'config' },
+  { name: 'blocked_time_slots', label: 'Blokkolt időpontok', category: 'config' },
+  { name: 'company_billing_info', label: 'Céges adatok', category: 'config' },
+  { name: 'domains', label: 'Domainek', category: 'config' },
+  { name: 'shipping_config', label: 'Szállítási konfig', category: 'config' },
+  { name: 'shipping_providers', label: 'Szállítási szolgáltatók', category: 'config' },
+  { name: 'szamlazz_settings', label: 'Számlázz.hu beállítások', category: 'config' },
+  
+  // User & Auth tables
+  { name: 'user_roles', label: 'Felhasználói szerepkörök', category: 'auth' },
+  { name: 'contacts', label: 'Kapcsolatok', category: 'crm' },
+  { name: 'leads', label: 'Érdeklődők', category: 'crm' },
+  
+  // Email tables
+  { name: 'email_templates', label: 'Email sablonok', category: 'email' },
+  { name: 'email_campaigns', label: 'Email kampányok', category: 'email' },
+  { name: 'email_campaign_recipients', label: 'Kampány címzettek', category: 'email' },
+  { name: 'email_messages', label: 'Email üzenetek', category: 'email' },
+  { name: 'email_attachments', label: 'Email csatolmányok', category: 'email' },
+  
+  // Analytics tables
+  { name: 'cta_clicks', label: 'CTA kattintások', category: 'analytics' },
+  { name: 'page_views', label: 'Oldal megtekintések', category: 'analytics' },
+  { name: 'session_metrics', label: 'Munkamenet metrikák', category: 'analytics' },
+  { name: 'form_interactions', label: 'Form interakciók', category: 'analytics' },
+  { name: 'lead_scores', label: 'Lead pontszámok', category: 'analytics' },
 ];
 
 export default function DatabaseExport() {
