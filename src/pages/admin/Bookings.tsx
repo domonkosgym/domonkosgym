@@ -69,6 +69,16 @@ interface BlockedSlot {
   all_day: boolean;
 }
 
+interface AvailabilitySlot {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+}
+
+const DAY_NAMES = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
+
 // Generate 30-minute time slots from 00:00 to 23:30
 const generateTimeSlots = () => {
   const slots: string[] = [];
@@ -103,6 +113,14 @@ export default function Bookings() {
   const [blockReason, setBlockReason] = useState("");
   const [blockAllDay, setBlockAllDay] = useState(false);
 
+  // Availability slots state
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [newSlotDay, setNewSlotDay] = useState<number>(1);
+  const [newSlotStart, setNewSlotStart] = useState("09:00");
+  const [newSlotEnd, setNewSlotEnd] = useState("18:00");
+  const [isAddSlotDialogOpen, setIsAddSlotDialogOpen] = useState(false);
+
   // Reschedule state
   const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(undefined);
@@ -111,6 +129,7 @@ export default function Bookings() {
   useEffect(() => {
     fetchBookings();
     fetchBlockedSlots();
+    fetchAvailabilitySlots();
 
     // Set up realtime subscriptions
     const bookingsChannel = supabase
@@ -143,9 +162,25 @@ export default function Bookings() {
       )
       .subscribe();
 
+    const availabilityChannel = supabase
+      .channel('availability-slots-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'availability_slots'
+        },
+        () => {
+          fetchAvailabilitySlots();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(bookingsChannel);
       supabase.removeChannel(blockedChannel);
+      supabase.removeChannel(availabilityChannel);
     };
   }, []);
 
@@ -186,6 +221,80 @@ export default function Bookings() {
       toast.error("Hiba történt a blokkolt időpontok betöltésekor");
     } finally {
       setBlockedLoading(false);
+    }
+  };
+
+  const fetchAvailabilitySlots = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .order("day_of_week", { ascending: true });
+
+      if (error) throw error;
+      setAvailabilitySlots(data || []);
+    } catch (error) {
+      console.error("Error fetching availability slots:", error);
+      toast.error("Hiba történt az elérhetőségi idősávok betöltésekor");
+    }
+  };
+
+  const handleAddAvailabilitySlot = async () => {
+    try {
+      const { error } = await supabase
+        .from("availability_slots")
+        .insert({
+          day_of_week: newSlotDay,
+          start_time: `${newSlotStart}:00`,
+          end_time: `${newSlotEnd}:00`,
+          is_available: true,
+        });
+
+      if (error) throw error;
+
+      toast.success("Elérhetőségi idősáv hozzáadva!");
+      setIsAddSlotDialogOpen(false);
+      setNewSlotDay(1);
+      setNewSlotStart("09:00");
+      setNewSlotEnd("18:00");
+      fetchAvailabilitySlots();
+    } catch (error) {
+      console.error("Error adding availability slot:", error);
+      toast.error("Hiba történt az idősáv hozzáadásakor");
+    }
+  };
+
+  const handleDeleteAvailabilitySlot = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("availability_slots")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Elérhetőségi idősáv törölve!");
+      fetchAvailabilitySlots();
+    } catch (error) {
+      console.error("Error deleting availability slot:", error);
+      toast.error("Hiba történt a törlés során");
+    }
+  };
+
+  const handleToggleAvailability = async (id: string, isAvailable: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("availability_slots")
+        .update({ is_available: !isAvailable })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success(isAvailable ? "Idősáv kikapcsolva" : "Idősáv bekapcsolva");
+      fetchAvailabilitySlots();
+    } catch (error) {
+      console.error("Error toggling availability:", error);
+      toast.error("Hiba történt");
     }
   };
 
@@ -503,9 +612,10 @@ export default function Bookings() {
       <h1 className="text-2xl sm:text-3xl font-bold">Időpontfoglalások</h1>
 
       <Tabs defaultValue="bookings" className="w-full">
-        <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
+        <TabsList className="w-full sm:w-auto grid grid-cols-3 sm:flex">
           <TabsTrigger value="bookings" className="text-xs sm:text-sm">Foglalások</TabsTrigger>
-          <TabsTrigger value="blocked" className="text-xs sm:text-sm">Blokkolt időpontok</TabsTrigger>
+          <TabsTrigger value="availability" className="text-xs sm:text-sm">Munkaidő</TabsTrigger>
+          <TabsTrigger value="blocked" className="text-xs sm:text-sm">Blokkolás</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="space-y-4 sm:space-y-6">
@@ -718,6 +828,89 @@ export default function Bookings() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="availability" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium">Munkaidő beállítások</p>
+              <p className="text-muted-foreground text-sm">
+                Itt állíthatod be, mely napokon és időszakokban vagy elérhető foglalásra
+              </p>
+            </div>
+            <Button onClick={() => setIsAddSlotDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Új idősáv
+            </Button>
+          </div>
+
+          <Card>
+            <CardContent className="pt-6">
+              {availabilitySlots.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Még nincsenek beállított munkaidők. Add hozzá az első idősávot!
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {[1, 2, 3, 4, 5, 6, 0].map(dayOfWeek => {
+                    const daySlots = availabilitySlots.filter(s => s.day_of_week === dayOfWeek);
+                    if (daySlots.length === 0) return null;
+                    
+                    return (
+                      <div key={dayOfWeek} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="font-semibold text-lg">{DAY_NAMES[dayOfWeek]}</h3>
+                          <Badge variant={daySlots.some(s => s.is_available) ? "default" : "secondary"}>
+                            {daySlots.some(s => s.is_available) ? "Elérhető" : "Kikapcsolva"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {daySlots.map(slot => (
+                            <div 
+                              key={slot.id} 
+                              className={cn(
+                                "flex items-center justify-between p-3 rounded-lg",
+                                slot.is_available ? "bg-primary/10" : "bg-muted"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">
+                                  {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleToggleAvailability(slot.id, slot.is_available)}
+                                  className={slot.is_available ? "text-green-600" : "text-muted-foreground"}
+                                >
+                                  {slot.is_available ? (
+                                    <><CheckCircle className="h-4 w-4 mr-1" /> Aktív</>
+                                  ) : (
+                                    <><XCircle className="h-4 w-4 mr-1" /> Inaktív</>
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteAvailabilitySlot(slot.id)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="blocked" className="space-y-6">
@@ -1196,6 +1389,87 @@ export default function Bookings() {
               </Button>
               <Button onClick={handleBlockTime}>
                 Blokkolás
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Availability Slot Dialog */}
+      <Dialog open={isAddSlotDialogOpen} onOpenChange={setIsAddSlotDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Új elérhetőségi idősáv</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Nap</Label>
+              <Select
+                value={newSlotDay.toString()}
+                onValueChange={(v) => setNewSlotDay(parseInt(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Válassz napot" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6, 0].map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {DAY_NAMES[day]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Kezdés</Label>
+                <Select
+                  value={newSlotStart}
+                  onValueChange={setNewSlotStart}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Kezdés" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {TIME_SLOTS.map((time) => (
+                      <SelectItem key={`new-start-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Befejezés</Label>
+                <Select
+                  value={newSlotEnd}
+                  onValueChange={setNewSlotEnd}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Befejezés" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {TIME_SLOTS.filter(time => time > newSlotStart).map((time) => (
+                      <SelectItem key={`new-end-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsAddSlotDialogOpen(false)}
+              >
+                Mégse
+              </Button>
+              <Button onClick={handleAddAvailabilitySlot}>
+                Hozzáadás
               </Button>
             </div>
           </div>
