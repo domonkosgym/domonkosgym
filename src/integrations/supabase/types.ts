@@ -1631,6 +1631,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_enum_types: {
+        Args: never
+        Returns: {
+          enum_name: string
+          enum_values: string[]
+        }[]
+      }
+      get_all_table_info: {
+        Args: never
+        Returns: {
+          column_default: string
+          column_name: string
+          data_type: string
+          is_nullable: string
+          ordinal_position: number
+          table_name: string
+          udt_name: string
+        }[]
+      }
       get_booking_slots: {
         Args: { p_service_id?: string }
         Returns: {
@@ -1638,6 +1657,41 @@ export type Database = {
           scheduled_date: string
           scheduled_time: string
           service_id: string
+        }[]
+      }
+      get_foreign_keys: {
+        Args: never
+        Returns: {
+          column_name: string
+          constraint_name: string
+          foreign_column: string
+          foreign_table: string
+          table_name: string
+        }[]
+      }
+      get_primary_keys: {
+        Args: never
+        Returns: {
+          column_name: string
+          table_name: string
+        }[]
+      }
+      get_rls_policies: {
+        Args: never
+        Returns: {
+          policy_command: string
+          policy_name: string
+          policy_qual: string
+          policy_with_check: string
+          table_name: string
+        }[]
+      }
+      get_unique_constraints: {
+        Args: never
+        Returns: {
+          column_names: string[]
+          constraint_name: string
+          table_name: string
         }[]
       }
       get_user_id_by_email: { Args: { _email: string }; Returns: string }
