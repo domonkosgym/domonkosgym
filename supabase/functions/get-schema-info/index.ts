@@ -16,40 +16,57 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get all tables in public schema
+    console.log("Fetching table info...");
     const { data: tables, error: tablesError } = await supabaseClient.rpc('get_all_table_info');
-    
     if (tablesError) {
+      console.error("Tables error:", tablesError);
       throw tablesError;
     }
 
-    // Get all enum types
+    console.log("Fetching enum types...");
     const { data: enums, error: enumsError } = await supabaseClient.rpc('get_all_enum_types');
-    
     if (enumsError) {
+      console.error("Enums error:", enumsError);
       throw enumsError;
     }
 
-    // Get RLS policies
+    console.log("Fetching RLS policies...");
     const { data: policies, error: policiesError } = await supabaseClient.rpc('get_rls_policies');
-    
     if (policiesError) {
+      console.error("Policies error:", policiesError);
       throw policiesError;
     }
 
-    // Get foreign keys
+    console.log("Fetching foreign keys...");
     const { data: foreignKeys, error: fkError } = await supabaseClient.rpc('get_foreign_keys');
-    
     if (fkError) {
+      console.error("Foreign keys error:", fkError);
       throw fkError;
     }
 
+    console.log("Fetching primary keys...");
+    const { data: primaryKeys, error: pkError } = await supabaseClient.rpc('get_primary_keys');
+    if (pkError) {
+      console.error("Primary keys error:", pkError);
+      throw pkError;
+    }
+
+    console.log("Fetching unique constraints...");
+    const { data: uniqueConstraints, error: ucError } = await supabaseClient.rpc('get_unique_constraints');
+    if (ucError) {
+      console.error("Unique constraints error:", ucError);
+      throw ucError;
+    }
+
+    console.log("Schema info fetched successfully");
     return new Response(
       JSON.stringify({
         tables,
         enums,
         policies,
-        foreignKeys
+        foreignKeys,
+        primaryKeys,
+        uniqueConstraints
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

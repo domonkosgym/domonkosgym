@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,57 +6,58 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Download, Database, FileCode, Info, Loader2, CheckCircle } from "lucide-react";
+import { Download, Database, FileCode, Info, Loader2, CheckCircle, RefreshCw } from "lucide-react";
 
-const EXPORTABLE_TABLES = [
-  // Content tables
-  { name: 'about_page', label: 'Rólam oldal', category: 'content' },
-  { name: 'about_sections', label: 'Rólam szekciók', category: 'content' },
-  { name: 'cms_settings', label: 'CMS beállítások', category: 'content' },
-  { name: 'faqs', label: 'GYIK', category: 'content' },
-  { name: 'featured_links', label: 'Kiemelt linkek', category: 'content' },
-  { name: 'landing_page_sections', label: 'Főoldal szekciók', category: 'content' },
-  { name: 'process_steps', label: 'Folyamat lépések', category: 'content' },
-  { name: 'site_images', label: 'Oldal képek', category: 'content' },
-  { name: 'theme_settings', label: 'Téma beállítások', category: 'content' },
-  
-  // Business tables
-  { name: 'products', label: 'Termékek', category: 'business' },
-  { name: 'services', label: 'Szolgáltatások', category: 'business' },
-  { name: 'orders', label: 'Rendelések', category: 'business' },
-  { name: 'order_items', label: 'Rendelés tételek', category: 'business' },
-  { name: 'bookings', label: 'Foglalások', category: 'business' },
-  { name: 'invoices', label: 'Számlák', category: 'business' },
-  { name: 'digital_entitlements', label: 'Digitális jogosultságok', category: 'business' },
-  
-  // Configuration tables
-  { name: 'availability_slots', label: 'Elérhetőségi idősávok', category: 'config' },
-  { name: 'blocked_time_slots', label: 'Blokkolt időpontok', category: 'config' },
-  { name: 'company_billing_info', label: 'Céges adatok', category: 'config' },
-  { name: 'domains', label: 'Domainek', category: 'config' },
-  { name: 'shipping_config', label: 'Szállítási konfig', category: 'config' },
-  { name: 'shipping_providers', label: 'Szállítási szolgáltatók', category: 'config' },
-  { name: 'szamlazz_settings', label: 'Számlázz.hu beállítások', category: 'config' },
-  
-  // User & Auth tables
-  { name: 'user_roles', label: 'Felhasználói szerepkörök', category: 'auth' },
-  { name: 'contacts', label: 'Kapcsolatok', category: 'crm' },
-  { name: 'leads', label: 'Érdeklődők', category: 'crm' },
-  
-  // Email tables
-  { name: 'email_templates', label: 'Email sablonok', category: 'email' },
-  { name: 'email_campaigns', label: 'Email kampányok', category: 'email' },
-  { name: 'email_campaign_recipients', label: 'Kampány címzettek', category: 'email' },
-  { name: 'email_messages', label: 'Email üzenetek', category: 'email' },
-  { name: 'email_attachments', label: 'Email csatolmányok', category: 'email' },
-  
-  // Analytics tables
-  { name: 'cta_clicks', label: 'CTA kattintások', category: 'analytics' },
-  { name: 'page_views', label: 'Oldal megtekintések', category: 'analytics' },
-  { name: 'session_metrics', label: 'Munkamenet metrikák', category: 'analytics' },
-  { name: 'form_interactions', label: 'Form interakciók', category: 'analytics' },
-  { name: 'lead_scores', label: 'Lead pontszámok', category: 'analytics' },
-];
+interface TableColumn {
+  table_name: string;
+  column_name: string;
+  data_type: string;
+  udt_name: string;
+  is_nullable: string;
+  column_default: string | null;
+  ordinal_position: number;
+}
+
+interface EnumType {
+  enum_name: string;
+  enum_values: string[];
+}
+
+interface RLSPolicy {
+  table_name: string;
+  policy_name: string;
+  policy_command: string;
+  policy_qual: string | null;
+  policy_with_check: string | null;
+}
+
+interface ForeignKey {
+  table_name: string;
+  column_name: string;
+  foreign_table: string;
+  foreign_column: string;
+  constraint_name: string;
+}
+
+interface PrimaryKey {
+  table_name: string;
+  column_name: string;
+}
+
+interface UniqueConstraint {
+  table_name: string;
+  constraint_name: string;
+  column_names: string[];
+}
+
+interface SchemaInfo {
+  tables: TableColumn[];
+  enums: EnumType[];
+  policies: RLSPolicy[];
+  foreignKeys: ForeignKey[];
+  primaryKeys: PrimaryKey[];
+  uniqueConstraints: UniqueConstraint[];
+}
 
 interface ExportProgress {
   tableName: string;
@@ -64,11 +65,84 @@ interface ExportProgress {
   status: 'pending' | 'loading' | 'done' | 'error';
 }
 
+const TABLE_LABELS: Record<string, { label: string; category: string }> = {
+  'about_page': { label: 'Rólam oldal', category: 'content' },
+  'about_sections': { label: 'Rólam szekciók', category: 'content' },
+  'cms_settings': { label: 'CMS beállítások', category: 'content' },
+  'faqs': { label: 'GYIK', category: 'content' },
+  'featured_links': { label: 'Kiemelt linkek', category: 'content' },
+  'landing_page_sections': { label: 'Főoldal szekciók', category: 'content' },
+  'process_steps': { label: 'Folyamat lépések', category: 'content' },
+  'site_images': { label: 'Oldal képek', category: 'content' },
+  'theme_settings': { label: 'Téma beállítások', category: 'content' },
+  'products': { label: 'Termékek', category: 'business' },
+  'services': { label: 'Szolgáltatások', category: 'business' },
+  'orders': { label: 'Rendelések', category: 'business' },
+  'order_items': { label: 'Rendelés tételek', category: 'business' },
+  'bookings': { label: 'Foglalások', category: 'business' },
+  'invoices': { label: 'Számlák', category: 'business' },
+  'digital_entitlements': { label: 'Digitális jogosultságok', category: 'business' },
+  'availability_slots': { label: 'Elérhetőségi idősávok', category: 'config' },
+  'blocked_time_slots': { label: 'Blokkolt időpontok', category: 'config' },
+  'company_billing_info': { label: 'Céges adatok', category: 'config' },
+  'domains': { label: 'Domainek', category: 'config' },
+  'shipping_config': { label: 'Szállítási konfig', category: 'config' },
+  'shipping_providers': { label: 'Szállítási szolgáltatók', category: 'config' },
+  'szamlazz_settings': { label: 'Számlázz.hu beállítások', category: 'config' },
+  'user_roles': { label: 'Felhasználói szerepkörök', category: 'auth' },
+  'contacts': { label: 'Kapcsolatok', category: 'crm' },
+  'leads': { label: 'Érdeklődők', category: 'crm' },
+  'email_templates': { label: 'Email sablonok', category: 'email' },
+  'email_campaigns': { label: 'Email kampányok', category: 'email' },
+  'email_campaign_recipients': { label: 'Kampány címzettek', category: 'email' },
+  'email_messages': { label: 'Email üzenetek', category: 'email' },
+  'email_attachments': { label: 'Email csatolmányok', category: 'email' },
+  'cta_clicks': { label: 'CTA kattintások', category: 'analytics' },
+  'page_views': { label: 'Oldal megtekintések', category: 'analytics' },
+  'session_metrics': { label: 'Munkamenet metrikák', category: 'analytics' },
+  'form_interactions': { label: 'Form interakciók', category: 'analytics' },
+  'lead_scores': { label: 'Lead pontszámok', category: 'analytics' },
+};
+
 export default function DatabaseExport() {
-  const [selectedTables, setSelectedTables] = useState<string[]>(EXPORTABLE_TABLES.map(t => t.name));
+  const [schemaInfo, setSchemaInfo] = useState<SchemaInfo | null>(null);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [allTables, setAllTables] = useState<string[]>([]);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [exportingSchema, setExportingSchema] = useState(false);
   const [exportingData, setExportingData] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress[]>([]);
+
+  useEffect(() => {
+    fetchSchemaInfo();
+  }, []);
+
+  const fetchSchemaInfo = async () => {
+    setLoadingSchema(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-schema-info');
+      
+      if (error) {
+        console.error('Schema fetch error:', error);
+        toast.error('Hiba a séma lekérdezésekor');
+        return;
+      }
+
+      setSchemaInfo(data);
+      
+      // Extract unique table names
+      const tableNames = [...new Set(data.tables.map((t: TableColumn) => t.table_name))].sort() as string[];
+      setAllTables(tableNames);
+      setSelectedTables(tableNames);
+      
+      toast.success(`${tableNames.length} tábla betöltve az adatbázisból`);
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Nem sikerült a séma lekérdezése');
+    } finally {
+      setLoadingSchema(false);
+    }
+  };
 
   const toggleTable = (tableName: string) => {
     setSelectedTables(prev =>
@@ -78,7 +152,7 @@ export default function DatabaseExport() {
     );
   };
 
-  const selectAll = () => setSelectedTables(EXPORTABLE_TABLES.map(t => t.name));
+  const selectAll = () => setSelectedTables([...allTables]);
   const selectNone = () => setSelectedTables([]);
 
   const downloadFile = (content: string, filename: string) => {
@@ -104,7 +178,6 @@ export default function DatabaseExport() {
     if (typeof value === 'object') {
       return `'${JSON.stringify(value).replace(/'/g, "''")}'::jsonb`;
     }
-    // Escape newlines and special characters
     const escaped = String(value)
       .replace(/'/g, "''")
       .replace(/\\/g, '\\\\')
@@ -114,15 +187,15 @@ export default function DatabaseExport() {
     return `E'${escaped}'`;
   };
 
-  const fetchAllRows = async (tableName: string): Promise<any[]> => {
-    const allRows: any[] = [];
+  const fetchAllRows = async (tableName: string): Promise<Record<string, unknown>[]> => {
+    const allRows: Record<string, unknown>[] = [];
     const pageSize = 1000;
     let offset = 0;
     let hasMore = true;
 
     while (hasMore) {
       const { data, error } = await supabase
-        .from(tableName as any)
+        .from(tableName as 'about_page')
         .select('*')
         .range(offset, offset + pageSize - 1);
 
@@ -132,7 +205,7 @@ export default function DatabaseExport() {
       }
 
       if (data && data.length > 0) {
-        allRows.push(...data);
+        allRows.push(...(data as Record<string, unknown>[]));
         offset += pageSize;
         hasMore = data.length === pageSize;
       } else {
@@ -177,7 +250,6 @@ export default function DatabaseExport() {
             sql += `-- SOROK SZÁMA: ${data.length}\n`;
             sql += `-- ============================================\n\n`;
             
-            // Disable triggers and constraints for faster import
             sql += `-- Ideiglenes trigger letiltás\n`;
             sql += `ALTER TABLE public.${tableName} DISABLE TRIGGER ALL;\n\n`;
             
@@ -225,162 +297,212 @@ export default function DatabaseExport() {
     setExportingData(false);
   };
 
+  const mapPostgresType = (dataType: string, udtName: string): string => {
+    // Check if it's an enum type
+    if (schemaInfo?.enums.some(e => e.enum_name === udtName)) {
+      return `public.${udtName}`;
+    }
+    
+    // Check for arrays
+    if (dataType === 'ARRAY') {
+      const baseType = udtName.startsWith('_') ? udtName.substring(1) : udtName;
+      return `${baseType}[]`;
+    }
+    
+    // Map common types
+    const typeMap: Record<string, string> = {
+      'uuid': 'uuid',
+      'text': 'text',
+      'boolean': 'boolean',
+      'integer': 'integer',
+      'bigint': 'bigint',
+      'numeric': 'numeric',
+      'timestamp with time zone': 'timestamp with time zone',
+      'timestamp without time zone': 'timestamp without time zone',
+      'date': 'date',
+      'time without time zone': 'time without time zone',
+      'time with time zone': 'time with time zone',
+      'jsonb': 'jsonb',
+      'json': 'json',
+      'bytea': 'bytea',
+      'inet': 'inet',
+      'real': 'real',
+      'double precision': 'double precision',
+      'smallint': 'smallint',
+    };
+    
+    return typeMap[dataType] || udtName || dataType;
+  };
+
   const exportSchema = async () => {
+    if (!schemaInfo) {
+      toast.error('Először töltsd be a sémát');
+      return;
+    }
+
     setExportingSchema(true);
 
     let sql = `-- ============================================\n`;
-    sql += `-- ADATBÁZIS SÉMA EXPORT\n`;
+    sql += `-- TELJES ADATBÁZIS SÉMA EXPORT\n`;
     sql += `-- Dátum: ${new Date().toISOString()}\n`;
+    sql += `-- Táblák száma: ${allTables.length}\n`;
     sql += `-- ============================================\n\n`;
     
-    sql += `-- ENUM típusok\n`;
-    sql += `CREATE TYPE public.app_role AS ENUM ('admin', 'user');\n`;
-    sql += `CREATE TYPE public.order_status AS ENUM ('NEW', 'PROCESSING', 'SHIPPED', 'COMPLETED', 'CANCELLED');\n`;
-    sql += `CREATE TYPE public.payment_status AS ENUM ('PENDING', 'PAID', 'FAILED', 'REFUNDED');\n`;
-    sql += `CREATE TYPE public.product_type AS ENUM ('DIGITAL', 'PHYSICAL');\n`;
-    sql += `CREATE TYPE public.shipping_method AS ENUM ('HOME', 'BOX', 'NONE');\n\n`;
+    // Export ENUMs first
+    if (schemaInfo.enums && schemaInfo.enums.length > 0) {
+      sql += `-- ============================================\n`;
+      sql += `-- ENUM TÍPUSOK\n`;
+      sql += `-- ============================================\n\n`;
+      
+      for (const enumType of schemaInfo.enums) {
+        const values = enumType.enum_values.map(v => `'${v}'`).join(', ');
+        sql += `CREATE TYPE public.${enumType.enum_name} AS ENUM (${values});\n`;
+      }
+      sql += `\n`;
+    }
+
+    // Group columns by table
+    const tableColumns: Record<string, TableColumn[]> = {};
+    for (const col of schemaInfo.tables) {
+      if (!tableColumns[col.table_name]) {
+        tableColumns[col.table_name] = [];
+      }
+      tableColumns[col.table_name].push(col);
+    }
+
+    // Sort columns by ordinal position
+    for (const tableName of Object.keys(tableColumns)) {
+      tableColumns[tableName].sort((a, b) => a.ordinal_position - b.ordinal_position);
+    }
+
+    // Get primary keys by table
+    const primaryKeysByTable: Record<string, string[]> = {};
+    if (schemaInfo.primaryKeys) {
+      for (const pk of schemaInfo.primaryKeys) {
+        if (!primaryKeysByTable[pk.table_name]) {
+          primaryKeysByTable[pk.table_name] = [];
+        }
+        primaryKeysByTable[pk.table_name].push(pk.column_name);
+      }
+    }
+
+    // Get foreign keys by table
+    const foreignKeysByTable: Record<string, ForeignKey[]> = {};
+    if (schemaInfo.foreignKeys) {
+      for (const fk of schemaInfo.foreignKeys) {
+        if (!foreignKeysByTable[fk.table_name]) {
+          foreignKeysByTable[fk.table_name] = [];
+        }
+        foreignKeysByTable[fk.table_name].push(fk);
+      }
+    }
 
     sql += `-- ============================================\n`;
-    sql += `-- TÁBLA DEFINÍCIÓK\n`;
+    sql += `-- TÁBLA DEFINÍCIÓK (${allTables.length} tábla)\n`;
     sql += `-- ============================================\n\n`;
 
-    // Products table
-    sql += `-- PRODUCTS\n`;
-    sql += `CREATE TABLE IF NOT EXISTS public.products (\n`;
-    sql += `  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    sql += `  title_hu text NOT NULL,\n`;
-    sql += `  title_en text NOT NULL,\n`;
-    sql += `  title_es text NOT NULL,\n`;
-    sql += `  subtitle_hu text,\n`;
-    sql += `  subtitle_en text,\n`;
-    sql += `  subtitle_es text,\n`;
-    sql += `  description_hu text NOT NULL,\n`;
-    sql += `  description_en text NOT NULL,\n`;
-    sql += `  description_es text NOT NULL,\n`;
-    sql += `  excerpt_hu text,\n`;
-    sql += `  excerpt_en text,\n`;
-    sql += `  excerpt_es text,\n`;
-    sql += `  price_gross numeric NOT NULL,\n`;
-    sql += `  sale_price numeric,\n`;
-    sql += `  currency text NOT NULL DEFAULT 'HUF',\n`;
-    sql += `  product_type product_type NOT NULL DEFAULT 'DIGITAL',\n`;
-    sql += `  cover_image_url text,\n`;
-    sql += `  file_asset_url text,\n`;
-    sql += `  gallery_images text[] DEFAULT '{}',\n`;
-    sql += `  is_featured boolean DEFAULT false,\n`;
-    sql += `  is_on_sale boolean DEFAULT false,\n`;
-    sql += `  is_active boolean DEFAULT true,\n`;
-    sql += `  sort_order integer DEFAULT 0,\n`;
-    sql += `  sale_from timestamp with time zone,\n`;
-    sql += `  sale_to timestamp with time zone,\n`;
-    sql += `  created_at timestamp with time zone DEFAULT now(),\n`;
-    sql += `  updated_at timestamp with time zone DEFAULT now()\n`;
-    sql += `);\n\n`;
+    // Export all tables
+    for (const tableName of allTables) {
+      const columns = tableColumns[tableName];
+      if (!columns || columns.length === 0) continue;
 
-    // Services table
-    sql += `-- SERVICES\n`;
-    sql += `CREATE TABLE IF NOT EXISTS public.services (\n`;
-    sql += `  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    sql += `  name text NOT NULL,\n`;
-    sql += `  description text NOT NULL,\n`;
-    sql += `  price numeric NOT NULL,\n`;
-    sql += `  sale_price numeric,\n`;
-    sql += `  is_on_sale boolean NOT NULL DEFAULT false,\n`;
-    sql += `  category text NOT NULL,\n`;
-    sql += `  slug text NOT NULL,\n`;
-    sql += `  image_url text,\n`;
-    sql += `  featured boolean NOT NULL DEFAULT false,\n`;
-    sql += `  active boolean NOT NULL DEFAULT true,\n`;
-    sql += `  sort_order integer NOT NULL DEFAULT 0,\n`;
-    sql += `  created_at timestamp with time zone NOT NULL DEFAULT now(),\n`;
-    sql += `  updated_at timestamp with time zone NOT NULL DEFAULT now()\n`;
-    sql += `);\n\n`;
+      const tableLabel = TABLE_LABELS[tableName]?.label || tableName;
+      sql += `-- ${tableLabel.toUpperCase()} (${tableName})\n`;
+      sql += `CREATE TABLE IF NOT EXISTS public.${tableName} (\n`;
+      
+      const columnDefs: string[] = [];
+      
+      for (const col of columns) {
+        let colDef = `  ${col.column_name} ${mapPostgresType(col.data_type, col.udt_name)}`;
+        
+        if (col.is_nullable === 'NO') {
+          colDef += ' NOT NULL';
+        }
+        
+        if (col.column_default) {
+          // Clean up default value
+          let defaultVal = col.column_default;
+          // Remove schema prefix if present
+          defaultVal = defaultVal.replace(/extensions\./g, '');
+          colDef += ` DEFAULT ${defaultVal}`;
+        }
+        
+        columnDefs.push(colDef);
+      }
+      
+      // Add primary key constraint
+      const pks = primaryKeysByTable[tableName];
+      if (pks && pks.length > 0) {
+        columnDefs.push(`  PRIMARY KEY (${pks.join(', ')})`);
+      }
+      
+      // Add foreign key constraints
+      const fks = foreignKeysByTable[tableName];
+      if (fks && fks.length > 0) {
+        for (const fk of fks) {
+          columnDefs.push(`  CONSTRAINT ${fk.constraint_name} FOREIGN KEY (${fk.column_name}) REFERENCES public.${fk.foreign_table}(${fk.foreign_column})`);
+        }
+      }
+      
+      sql += columnDefs.join(',\n');
+      sql += `\n);\n\n`;
+    }
 
-    // Orders table
-    sql += `-- ORDERS\n`;
-    sql += `CREATE TABLE IF NOT EXISTS public.orders (\n`;
-    sql += `  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    sql += `  customer_name text NOT NULL,\n`;
-    sql += `  customer_email text NOT NULL,\n`;
-    sql += `  customer_phone text,\n`;
-    sql += `  status order_status NOT NULL DEFAULT 'NEW',\n`;
-    sql += `  payment_status payment_status NOT NULL DEFAULT 'PENDING',\n`;
-    sql += `  total_amount numeric NOT NULL,\n`;
-    sql += `  shipping_amount numeric DEFAULT 0,\n`;
-    sql += `  shipping_method shipping_method NOT NULL DEFAULT 'NONE',\n`;
-    sql += `  currency text NOT NULL DEFAULT 'HUF',\n`;
-    sql += `  shipping_country text,\n`;
-    sql += `  shipping_postal_code text,\n`;
-    sql += `  shipping_city text,\n`;
-    sql += `  shipping_address text,\n`;
-    sql += `  billing_same_as_shipping boolean DEFAULT true,\n`;
-    sql += `  billing_name text,\n`;
-    sql += `  billing_country text DEFAULT 'Magyarország',\n`;
-    sql += `  billing_postal_code text,\n`;
-    sql += `  billing_city text,\n`;
-    sql += `  billing_address text,\n`;
-    sql += `  box_provider text,\n`;
-    sql += `  box_point_id text,\n`;
-    sql += `  box_point_label text,\n`;
-    sql += `  notes text,\n`;
-    sql += `  created_at timestamp with time zone DEFAULT now(),\n`;
-    sql += `  updated_at timestamp with time zone DEFAULT now()\n`;
-    sql += `);\n\n`;
-
-    // Bookings table
-    sql += `-- BOOKINGS\n`;
-    sql += `CREATE TABLE IF NOT EXISTS public.bookings (\n`;
-    sql += `  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    sql += `  service_id uuid NOT NULL REFERENCES public.services(id),\n`;
-    sql += `  customer_name text NOT NULL,\n`;
-    sql += `  customer_email text NOT NULL,\n`;
-    sql += `  customer_phone text,\n`;
-    sql += `  scheduled_date date NOT NULL,\n`;
-    sql += `  scheduled_time time NOT NULL,\n`;
-    sql += `  duration_minutes integer NOT NULL DEFAULT 30,\n`;
-    sql += `  price numeric NOT NULL DEFAULT 0,\n`;
-    sql += `  status text NOT NULL DEFAULT 'pending',\n`;
-    sql += `  paid boolean DEFAULT false,\n`;
-    sql += `  billing_address text,\n`;
-    sql += `  notes text,\n`;
-    sql += `  reschedule_count integer NOT NULL DEFAULT 0,\n`;
-    sql += `  created_at timestamp with time zone NOT NULL DEFAULT now(),\n`;
-    sql += `  updated_at timestamp with time zone NOT NULL DEFAULT now()\n`;
-    sql += `);\n\n`;
-
-    // Digital entitlements
-    sql += `-- DIGITAL ENTITLEMENTS\n`;
-    sql += `CREATE TABLE IF NOT EXISTS public.digital_entitlements (\n`;
-    sql += `  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    sql += `  order_id uuid NOT NULL REFERENCES public.orders(id),\n`;
-    sql += `  product_id uuid NOT NULL REFERENCES public.products(id),\n`;
-    sql += `  token text NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),\n`;
-    sql += `  expires_at timestamp with time zone NOT NULL DEFAULT (now() + interval '72 hours'),\n`;
-    sql += `  download_count integer DEFAULT 0,\n`;
-    sql += `  max_downloads integer DEFAULT 10,\n`;
-    sql += `  created_at timestamp with time zone DEFAULT now()\n`;
-    sql += `);\n\n`;
-
+    // Export RLS enable statements
     sql += `-- ============================================\n`;
-    sql += `-- RLS SZABÁLYOK\n`;
+    sql += `-- ROW LEVEL SECURITY ENGEDÉLYEZÉS\n`;
     sql += `-- ============================================\n\n`;
 
-    sql += `ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;\n`;
-    sql += `ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;\n`;
-    sql += `ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;\n`;
-    sql += `ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;\n`;
-    sql += `ALTER TABLE public.digital_entitlements ENABLE ROW LEVEL SECURITY;\n\n`;
+    for (const tableName of allTables) {
+      sql += `ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;\n`;
+    }
+    sql += `\n`;
 
-    sql += `-- Példa RLS policy\n`;
-    sql += `CREATE POLICY "Anyone can view active products" ON public.products FOR SELECT USING (is_active = true);\n`;
-    sql += `CREATE POLICY "Admins can manage products" ON public.products FOR ALL USING (has_role(auth.uid(), 'admin'));\n\n`;
+    // Export RLS policies
+    if (schemaInfo.policies && schemaInfo.policies.length > 0) {
+      sql += `-- ============================================\n`;
+      sql += `-- RLS SZABÁLYOK (${schemaInfo.policies.length} policy)\n`;
+      sql += `-- ============================================\n\n`;
+      
+      for (const policy of schemaInfo.policies) {
+        sql += `-- Policy: ${policy.policy_name}\n`;
+        sql += `CREATE POLICY "${policy.policy_name}"\n`;
+        sql += `  ON ${policy.table_name}\n`;
+        sql += `  FOR ${policy.policy_command}\n`;
+        
+        if (policy.policy_qual) {
+          sql += `  USING (${policy.policy_qual})\n`;
+        }
+        
+        if (policy.policy_with_check) {
+          sql += `  WITH CHECK (${policy.policy_with_check})\n`;
+        }
+        
+        sql += `;\n\n`;
+      }
+    }
+
+    // Export unique constraints
+    if (schemaInfo.uniqueConstraints && schemaInfo.uniqueConstraints.length > 0) {
+      sql += `-- ============================================\n`;
+      sql += `-- UNIQUE CONSTRAINTS\n`;
+      sql += `-- ============================================\n\n`;
+      
+      for (const uc of schemaInfo.uniqueConstraints) {
+        sql += `ALTER TABLE public.${uc.table_name} ADD CONSTRAINT ${uc.constraint_name} UNIQUE (${uc.column_names.join(', ')});\n`;
+      }
+      sql += `\n`;
+    }
 
     sql += `-- ============================================\n`;
-    sql += `-- TELJES SÉMA: supabase/migrations/ mappában\n`;
+    sql += `-- SÉMA EXPORT BEFEJEZVE\n`;
+    sql += `-- Táblák: ${allTables.length}\n`;
+    sql += `-- Enum típusok: ${schemaInfo.enums?.length || 0}\n`;
+    sql += `-- RLS szabályok: ${schemaInfo.policies?.length || 0}\n`;
     sql += `-- ============================================\n`;
 
     downloadFile(sql, `adatbazis_sema_${new Date().toISOString().slice(0, 10)}.sql`);
-    toast.success('Séma exportálva');
+    toast.success(`Séma exportálva: ${allTables.length} tábla, ${schemaInfo.enums?.length || 0} enum, ${schemaInfo.policies?.length || 0} RLS policy`);
     setExportingSchema(false);
   };
 
@@ -392,47 +514,142 @@ export default function DatabaseExport() {
     { key: 'crm', label: 'CRM', color: 'text-orange-400' },
     { key: 'email', label: 'Email', color: 'text-pink-400' },
     { key: 'analytics', label: 'Analitika', color: 'text-cyan-400' },
+    { key: 'other', label: 'Egyéb', color: 'text-gray-400' },
   ];
+
+  const getTablesByCategory = (categoryKey: string) => {
+    return allTables.filter(tableName => {
+      const info = TABLE_LABELS[tableName];
+      if (categoryKey === 'other') {
+        return !info;
+      }
+      return info?.category === categoryKey;
+    });
+  };
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Adatbázis Exportálás</h1>
-        <p className="text-gray-400 mt-1">Teljes adatbázis export - minden adat, minden sor</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Adatbázis Exportálás</h1>
+          <p className="text-gray-400 mt-1">Teljes adatbázis export - minden tábla, minden adat</p>
+        </div>
+        <Button
+          onClick={fetchSchemaInfo}
+          disabled={loadingSchema}
+          variant="outline"
+          className="gap-2"
+        >
+          {loadingSchema ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Séma frissítése
+        </Button>
       </div>
 
+      {loadingSchema && (
+        <Alert className="bg-blue-900/20 border-blue-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <AlertTitle>Séma betöltése...</AlertTitle>
+          <AlertDescription>Táblák és struktúra lekérdezése az adatbázisból...</AlertDescription>
+        </Alert>
+      )}
+
+      {schemaInfo && (
+        <Alert className="bg-green-900/20 border-green-700">
+          <CheckCircle className="h-4 w-4 text-green-400" />
+          <AlertTitle>Séma betöltve</AlertTitle>
+          <AlertDescription>
+            {allTables.length} tábla, {schemaInfo.enums?.length || 0} enum típus, {schemaInfo.policies?.length || 0} RLS policy
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Alert className="bg-blue-900/20 border-blue-700">
-        <Info className="h-4 w-4 text-blue-400" />
-        <AlertTitle className="text-blue-300">Teljes Export Funkció</AlertTitle>
-        <AlertDescription className="text-blue-200/80 mt-2">
-          <ul className="list-disc list-inside space-y-1">
-            <li>Minden kiválasztott tábla <strong>összes sora</strong> exportálva lesz</li>
-            <li>Nincs limit - több ezer sor is letöltődik</li>
-            <li>SQL formátum - közvetlenül importálható bármely PostgreSQL adatbázisba</li>
-            <li>Részletes dokumentáció: <code className="bg-blue-800/50 px-1 rounded">docs/INDEPENDENT_HOSTING.md</code></li>
-          </ul>
+        <Info className="h-4 w-4" />
+        <AlertTitle>Független hosztoláshoz</AlertTitle>
+        <AlertDescription>
+          A séma export tartalmazza az összes CREATE TABLE, ENUM típust és RLS policy-t.
+          Az adat export az INSERT utasításokat tartalmazza az összes kijelölt táblából.
         </AlertDescription>
       </Alert>
 
-      {/* Export Progress */}
-      {exportingData && exportProgress.length > 0 && (
-        <Card className="bg-gray-800/50 border-gray-700">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Schema Export */}
+        <Card className="bg-[#1a1a2e] border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-lg">Export folyamat...</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <FileCode className="h-5 w-5 text-blue-400" />
+              Séma Letöltése
+            </CardTitle>
+            <CardDescription>
+              Teljes adatbázis struktúra: {allTables.length} tábla, enum típusok, RLS szabályok
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-sm">
-              {exportProgress.map((p) => (
-                <div key={p.tableName} className={`flex items-center gap-2 p-2 rounded ${
-                  p.status === 'done' ? 'bg-green-900/20' : 
-                  p.status === 'loading' ? 'bg-blue-900/20' : 
-                  p.status === 'error' ? 'bg-red-900/20' : 
-                  'bg-gray-700/20'
-                }`}>
-                  {p.status === 'loading' && <Loader2 className="w-3 h-3 animate-spin text-blue-400" />}
-                  {p.status === 'done' && <CheckCircle className="w-3 h-3 text-green-400" />}
-                  <span className="text-gray-300 truncate">{p.tableName}</span>
-                  {p.status === 'done' && <span className="text-gray-500 text-xs">({p.rowCount})</span>}
+            <Button 
+              onClick={exportSchema} 
+              disabled={exportingSchema || loadingSchema || !schemaInfo}
+              className="w-full gap-2"
+            >
+              {exportingSchema ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {exportingSchema ? 'Exportálás...' : 'Séma Letöltése (.sql)'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Data Export */}
+        <Card className="bg-[#1a1a2e] border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Database className="h-5 w-5 text-green-400" />
+              Teljes Adatok Exportálása
+            </CardTitle>
+            <CardDescription>
+              {selectedTables.length} / {allTables.length} tábla kijelölve
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={exportData} 
+              disabled={exportingData || selectedTables.length === 0 || loadingSchema}
+              className="w-full gap-2"
+            >
+              {exportingData ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {exportingData ? 'Exportálás...' : 'Adatok Letöltése (.sql)'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Export Progress */}
+      {exportProgress.length > 0 && (
+        <Card className="bg-[#1a1a2e] border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white">Export Folyamat</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {exportProgress.map(p => (
+                <div 
+                  key={p.tableName}
+                  className={`p-2 rounded text-sm flex items-center gap-2 ${
+                    p.status === 'done' ? 'bg-green-900/20 text-green-400' :
+                    p.status === 'loading' ? 'bg-blue-900/20 text-blue-400' :
+                    p.status === 'error' ? 'bg-red-900/20 text-red-400' :
+                    'bg-gray-800 text-gray-400'
+                  }`}
+                >
+                  {p.status === 'loading' && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {p.status === 'done' && <CheckCircle className="h-3 w-3" />}
+                  <span className="truncate">{p.tableName}</span>
+                  {p.status === 'done' && <span className="text-xs">({p.rowCount})</span>}
                 </div>
               ))}
             </div>
@@ -440,96 +657,71 @@ export default function DatabaseExport() {
         </Card>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Schema Export */}
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <FileCode className="w-5 h-5" />
-              Séma Exportálás
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Tábla struktúrák, ENUM típusok, RLS szabályok
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={exportSchema} 
-              disabled={exportingSchema}
-              className="w-full"
-            >
-              {exportingSchema ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exportálás...</>
-              ) : (
-                <><Download className="w-4 h-4 mr-2" /> Séma letöltése</>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Data Export */}
-        <Card className="bg-gray-800/50 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Database className="w-5 h-5" />
-              Teljes Adatok Exportálása
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Minden sor, minden adat - korlátok nélkül
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={exportData} 
-              disabled={exportingData || selectedTables.length === 0}
-              className="w-full"
-            >
-              {exportingData ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Exportálás...</>
-              ) : (
-                <><Download className="w-4 h-4 mr-2" /> Adatok letöltése ({selectedTables.length} tábla)</>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Table Selection by Category */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      {/* Table Selection */}
+      <Card className="bg-[#1a1a2e] border-gray-700">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-white">Exportálandó táblák</CardTitle>
+            <div>
+              <CardTitle className="text-white">Exportálandó Táblák ({allTables.length} tábla az adatbázisban)</CardTitle>
+              <CardDescription>
+                Válaszd ki, mely táblákat szeretnéd exportálni az adat exporthoz
+              </CardDescription>
+            </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={selectAll}>Mind kijelöl</Button>
-              <Button variant="outline" size="sm" onClick={selectNone}>Összes törlése</Button>
+              <Button variant="outline" size="sm" onClick={selectAll}>
+                Mind kijelölése
+              </Button>
+              <Button variant="outline" size="sm" onClick={selectNone}>
+                Kijelölés törlése
+              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {categories.map((cat) => {
-            const tables = EXPORTABLE_TABLES.filter(t => t.category === cat.key);
-            if (tables.length === 0) return null;
-            
-            return (
-              <div key={cat.key}>
-                <h3 className={`text-sm font-semibold mb-3 ${cat.color}`}>{cat.label}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {tables.map((table) => (
-                    <div key={table.name} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={table.name}
-                        checked={selectedTables.includes(table.name)}
-                        onCheckedChange={() => toggleTable(table.name)}
-                      />
-                      <Label htmlFor={table.name} className="text-gray-300 text-sm cursor-pointer">
-                        {table.label}
-                      </Label>
+        <CardContent>
+          {loadingSchema ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {categories.map(category => {
+                const tables = getTablesByCategory(category.key);
+                if (tables.length === 0) return null;
+
+                return (
+                  <div key={category.key}>
+                    <h3 className={`text-sm font-medium mb-3 ${category.color}`}>
+                      {category.label} ({tables.length} tábla)
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {tables.map(tableName => {
+                        const label = TABLE_LABELS[tableName]?.label || tableName;
+                        return (
+                          <div 
+                            key={tableName}
+                            className="flex items-center space-x-2 bg-gray-800/50 p-2 rounded"
+                          >
+                            <Checkbox
+                              id={tableName}
+                              checked={selectedTables.includes(tableName)}
+                              onCheckedChange={() => toggleTable(tableName)}
+                            />
+                            <Label 
+                              htmlFor={tableName} 
+                              className="text-sm cursor-pointer text-gray-300 truncate"
+                              title={`${label} (${tableName})`}
+                            >
+                              {label}
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
