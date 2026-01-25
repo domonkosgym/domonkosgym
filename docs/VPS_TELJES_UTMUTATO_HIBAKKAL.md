@@ -484,11 +484,134 @@ echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiY
 {"role":"anon","iss":"supabase","iat":1704067200,"exp":1861920000}
 ```
 
-⚠️ **BUKTATÓ:** "Invalid JWT" hiba később
+---
+
+## 6.7 🔴 JWT.IO HIBAELHÁRÍTÁS - "Signature Verification Failed"
+
+Ez az egyik LEGGYAKORIBB probléma! Ha a jwt.io oldalon "signature verification failed" hibát kapsz, itt vannak a lehetséges okok és megoldások:
+
+### ⚠️ BUKTATÓ #1: "secret base64 encoded" checkbox
+
+**Probléma:** A jwt.io oldalon be van pipálva a "secret base64 encoded" checkbox, de a JWT_SECRET-ed NEM base64 kódolt.
+
+**MEGOLDÁS:**
+
+1. Menj a jwt.io oldalra
+2. Másold be a JWT tokent (ANON_KEY vagy SERVICE_ROLE_KEY) a bal oldali "Encoded" mezőbe
+3. Görgess le a "VERIFY SIGNATURE" szekcióhoz
+4. **FONTOS:** Ellenőrizd a "secret base64 encoded" checkboxot:
+   
+   **Ha az openssl-lel generáltad a JWT_SECRET-et (`openssl rand -base64 32`):**
+   - A secret MAGA base64 formátumú, DE a jwt.io-n **NE pipáld be** a "secret base64 encoded" opciót!
+   - Egyszerűen másold be a nyers secret-et
+   
+   **Miért?** Az `openssl rand -base64 32` egy base64-kódolt STRINGET ad vissza, de ezt a stringet használjuk közvetlenül secretként, nem dekódoljuk tovább.
+
+### ⚠️ BUKTATÓ #2: Extra karakterek a secret-ben
+
+**Probléma:** A JWT_SECRET-ben van szóköz, sortörés, vagy idézőjel.
+
+**MEGOLDÁS:**
+```bash
+# Ellenőrizd a .env fájlban:
+cat /opt/supabase/supabase/docker/.env | grep JWT_SECRET
+
+# HELYES formátum:
+JWT_SECRET=K7xN9mP2qR5vW8yB3cF6hJ4kL1nM0oS7gT8uI9oP
+
+# HIBÁS formátumok:
+JWT_SECRET="K7xN9mP2qR5vW8yB3cF6hJ4kL1nM0oS7gT8uI9oP"   # ❌ Idézőjel!
+JWT_SECRET= K7xN9mP2qR5vW8yB3cF6hJ4kL1nM0oS7gT8uI9oP  # ❌ Szóköz az = után!
+JWT_SECRET=K7xN9mP2qR5vW8yB3cF6hJ4kL1nM0oS7gT8uI9oP   # ❌ Sortörés a végén!
+```
+
+### ⚠️ BUKTATÓ #3: Eltérő secret a token generálásnál
+
+**Probléma:** Más JWT_SECRET-tel generáltad a tokent, mint ami a .env fájlban van.
+
+**MEGOLDÁS:**
+1. Írd le a JWT_SECRET-et amit használsz
+2. Generáld ÚJRA az ANON_KEY és SERVICE_ROLE_KEY tokeneket EZZEL a secrettel
+3. Frissítsd a .env fájlt az új tokenekkel
+
+### 🔧 LÉPÉSRŐL-LÉPÉSRE JWT VERIFIKÁCIÓ JWT.IO-N
+
+1. **Nyisd meg:** https://jwt.io
+
+2. **Bal oldal - Encoded mező:**
+   - Másold be az ANON_KEY-t TELJESEN
+   - Példa: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE4NjE5MjAwMDB9.abc123xyz`
+
+3. **Jobb oldal - Decoded HEADER:**
+   - Ezt látod: `{"alg": "HS256", "typ": "JWT"}`
+   - Ha nem HS256, akkor hibás a token!
+
+4. **Jobb oldal - Decoded PAYLOAD:**
+   - Ezt látod: `{"role": "anon", "iss": "supabase", "iat": 1704067200, "exp": 1861920000}`
+   - Ellenőrizd, hogy a role "anon" vagy "service_role"
+
+5. **Jobb oldal - VERIFY SIGNATURE:**
+   - Írd be: `HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), `**A_TE_JWT_SECRET_IDE**`)`
+   - A `your-256-bit-secret` szöveget cseréld ki a JWT_SECRET-edre
+   - **NE pipáld be** a "secret base64 encoded" opciót!
+
+6. **Eredmény:**
+   - ✅ Ha "Signature Verified" zöld pipa jelenik meg → SIKER!
+   - ❌ Ha "Invalid Signature" → Ellenőrizd újra a secretet
+
+### 🔧 ALTERNATÍV ELLENŐRZÉS PARANCSSORBÓL
+
+Ha a jwt.io nem működik, használd ezt:
+
+```bash
+# Telepítsd a jwt-cli-t
+npm install -g jwt-cli
+
+# Ellenőrizd az ANON_KEY-t
+jwt decode "A_TE_ANON_KEY_IDE"
+
+# Ellenőrizd a signature-t a secrettel
+jwt verify "A_TE_ANON_KEY_IDE" --secret "A_TE_JWT_SECRET_IDE"
+```
+
+### 🔧 VÉGSŐ MEGOLDÁS: ÚJ KULCSOK GENERÁLÁSA
+
+Ha semmi nem működik, generálj TELJESEN ÚJ kulcsokat:
+
+```bash
+# 1. Új JWT_SECRET
+JWT_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+echo "Új JWT_SECRET: $JWT_SECRET"
+
+# 2. Írd le ezt a secretet!
+
+# 3. Menj jwt.io-ra és generálj új ANON_KEY-t és SERVICE_ROLE_KEY-t ezzel a secrettel
+
+# 4. Frissítsd a .env fájlt az összes új kulccsal
+
+# 5. Indítsd újra a Supabase-t
+cd /opt/supabase/supabase/docker
+docker compose down
+docker compose up -d
+```
+
+### 📋 JWT HIBÁK GYORS REFERENCIA
+
+| Hibaüzenet | Lehetséges ok | Megoldás |
+|------------|---------------|----------|
+| "signature verification failed" | Rossz secret a jwt.io-n | Pontosan másold be a JWT_SECRET-et, ne pipáld be a base64 checkboxot |
+| "Invalid Signature" | Token és secret nem egyezik | Generálj új tokent a helyes secrettel |
+| "Malformed JWT" | A token formátuma hibás | Ellenőrizd, hogy 3 részből áll (pont-tal elválasztva) |
+| "JWT expired" | Az exp érték a múltban van | Használj jövőbeli exp értéket: 1861920000 |
+| "Invalid claims" | A payload hibás | Ellenőrizd a role, iss mezőket |
+
+---
+
+⚠️ **BUKTATÓ:** "Invalid JWT" hiba a Supabase indításakor
 🔧 **MEGOLDÁS:** 
 1. A JWT_SECRET PONTOSAN ugyanaz legyen a .env fájlban mint amit a token generálásánál használtál
 2. Ne legyen szóköz vagy sortörés a JWT_SECRET-ben
-3. Ne legyen idézőjel a JWT_SECRET körül a jwt.io-n
+3. Ne legyen idézőjel a JWT_SECRET körül a .env fájlban
 
 ⚠️ **BUKTATÓ:** "JWT expired" hiba
 🔧 **MEGOLDÁS:**
