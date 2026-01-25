@@ -104,10 +104,10 @@ const TABLE_LABELS: Record<string, { label: string; category: string }> = {
   'lead_scores': { label: 'Lead pontszámok', category: 'analytics' },
 };
 
-// Database functions to export
-const DATABASE_FUNCTIONS = `
+// Database functions that DON'T depend on tables (safe to create early)
+const DATABASE_FUNCTIONS_EARLY = `
 -- ============================================
--- ADATBÁZIS FÜGGVÉNYEK
+-- ALAP FÜGGVÉNYEK (NEM FÜGGNEK TÁBLÁKTÓL)
 -- ============================================
 
 -- Frissítési időbélyeg trigger függvény
@@ -121,7 +121,40 @@ BEGIN
 END;
 $function$;
 
--- Foglalási idősávok lekérdezése
+-- Felhasználó ID lekérése email alapján
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(_email text)
+RETURNS uuid
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  select id from auth.users where lower(email) = lower(_email) limit 1;
+$function$;
+
+`;
+
+// Database functions that DEPEND on tables (must be created after tables)
+const DATABASE_FUNCTIONS_LATE = `
+-- ============================================
+-- TÁBLA-FÜGGŐ FÜGGVÉNYEK (TÁBLÁK UTÁN KELL LÉTREHOZNI)
+-- ============================================
+
+-- Szerepkör ellenőrzése (függ: user_roles tábla)
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$function$;
+
+-- Foglalási idősávok lekérdezése (függ: bookings tábla)
 CREATE OR REPLACE FUNCTION public.get_booking_slots(p_service_id uuid DEFAULT NULL::uuid)
 RETURNS TABLE(service_id uuid, scheduled_date date, scheduled_time time without time zone, duration_minutes integer)
 LANGUAGE sql
@@ -138,32 +171,7 @@ AS $function$
     AND (p_service_id IS NULL OR b.service_id = p_service_id);
 $function$;
 
--- Felhasználó ID lekérése email alapján
-CREATE OR REPLACE FUNCTION public.get_user_id_by_email(_email text)
-RETURNS uuid
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-  select id from auth.users where lower(email) = lower(_email) limit 1;
-$function$;
-
--- Szerepkör ellenőrzése
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.user_roles
-    WHERE user_id = _user_id
-      AND role = _role
-  )
-$function$;
-
--- Admin felhasználó beállítása
+-- Admin felhasználó beállítása (függ: user_roles tábla)
 CREATE OR REPLACE FUNCTION public.setup_admin_user()
 RETURNS void
 LANGUAGE plpgsql
@@ -185,7 +193,7 @@ BEGIN
 END;
 $function$;
 
--- Admin felhasználó beállítása email alapján
+-- Admin felhasználó beállítása email alapján (függ: user_roles tábla)
 CREATE OR REPLACE FUNCTION public.setup_admin_user_by_email(_email text)
 RETURNS void
 LANGUAGE plpgsql
@@ -204,7 +212,14 @@ begin
 end;
 $function$;
 
--- Séma info függvények (csak ha szükséges az admin felületen)
+`;
+
+// Schema helper functions (only needed for admin panel, can be skipped on VPS)
+const SCHEMA_HELPER_FUNCTIONS = `
+-- ============================================
+-- SÉMA SEGÉD FÜGGVÉNYEK (OPCIONÁLIS - ADMIN FELÜLETHEZ)
+-- ============================================
+
 CREATE OR REPLACE FUNCTION public.get_all_table_info()
 RETURNS TABLE(table_name text, column_name text, data_type text, udt_name text, is_nullable text, column_default text, ordinal_position integer)
 LANGUAGE sql
@@ -663,8 +678,8 @@ export default function DatabaseExport() {
       }
     }
 
-    // Add database functions
-    sql += DATABASE_FUNCTIONS;
+    // Add early database functions (don't depend on tables)
+    sql += DATABASE_FUNCTIONS_EARLY;
     sql += `\n`;
 
     // Group columns by table
@@ -774,6 +789,14 @@ export default function DatabaseExport() {
       }
       sql += `\n`;
     }
+
+    // Add table-dependent functions AFTER tables are created
+    sql += DATABASE_FUNCTIONS_LATE;
+    sql += `\n`;
+
+    // Add optional schema helper functions
+    sql += SCHEMA_HELPER_FUNCTIONS;
+    sql += `\n`;
 
     // Export RLS enable statements
     sql += `-- ============================================\n`;
