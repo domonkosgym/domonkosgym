@@ -1,25 +1,40 @@
-# TheCoach.hu - VPS Telepítési Útmutató (Caddy + Self-Hosted Supabase)
+# TheCoach.hu - Teljes VPS Telepítési Útmutató (MHosting)
 
 ## Áttekintés
 
+Ez az útmutató bemutatja, hogyan telepítsd és működtesd a TheCoach.hu alkalmazást **teljesen függetlenül** a saját VPS szervereden (MHosting), a Lovable Cloud és Supabase Cloud szolgáltatások nélkül.
+
+### Architektúra
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         VPS (92.118.26.81)                      │
+│                    VPS Szerver (92.118.26.81)                   │
+│                         MHosting - AlmaLinux                    │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌─────────────────┐     ┌─────────────────────────────────┐   │
 │  │     Caddy       │     │     Self-Hosted Supabase        │   │
-│  │  (Reverse Proxy)│     │         (Docker)                │   │
+│  │  (Web Szerver)  │     │         (Docker)                │   │
 │  │                 │     │                                 │   │
-│  │  :80/:443       │     │  Kong API: :8000                │   │
-│  │                 │     │  PostgreSQL: :5432              │   │
-│  │  thecoach.hu ──────▶  │  /var/www/domonkosgym/dist      │   │
-│  │                 │     │                                 │   │
-│  │  api.thecoach.hu ──▶  │  localhost:8000 (Kong)          │   │
-│  │                 │     │                                 │   │
+│  │  :80/:443       │     │  PostgreSQL: :5432              │   │
+│  │                 │     │  Kong API: :8000                │   │
+│  │  thecoach.hu ───────▶ │  /var/www/thecoach.hu/dist      │   │
+│  │  (Frontend)     │     │                                 │   │
+│  │                 │     │  Auth, Storage, Edge Functions  │   │
+│  │  api.thecoach.hu ───▶ │  localhost:8000 (Kong Gateway)  │   │
+│  │  (Backend API)  │     │                                 │   │
 │  └─────────────────┘     └─────────────────────────────────┘   │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Kapcsolódás a szerverhez
+
+**FONTOS:** A szerverhez PowerShell-en keresztül kapcsolódunk SSH-val, és a fájlszerkesztéshez **vim**-et használunk.
+
+```powershell
+# PowerShell-ben:
+ssh root@92.118.26.81
 ```
 
 ---
@@ -162,11 +177,18 @@ cd supabase/docker
 cp .env.example .env
 ```
 
-### 4.3 .env fájl konfigurálása
+### 4.3 .env fájl konfigurálása vim-mel
 
 ```bash
-sudo nano /opt/supabase/supabase/docker/.env
+# Nyisd meg a .env fájlt vim-mel
+sudo vim /opt/supabase/docker/.env
 ```
+
+**vim kezelése:**
+- `i` - beszúrás mód
+- `Esc` - kilépés a módból
+- `:wq` - mentés és kilépés
+- `:q!` - kilépés mentés nélkül
 
 **Fontos változók:**
 

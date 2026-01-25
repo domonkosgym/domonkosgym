@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft } from "lucide-react";
 
 const formSchema = z.object({
-  username: z.string().min(3, "A felhasználónév legalább 3 karakter hosszú legyen"),
+  email: z.string().email("Érvényes e-mail címet adj meg"),
   password: z.string().min(6, "A jelszónak legalább 6 karakter hosszúnak kell lennie"),
 });
 
@@ -30,7 +30,7 @@ export default function Auth() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -45,12 +45,10 @@ export default function Auth() {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      // Convert username to email format for Supabase
-      const email = `${values.username.toLowerCase()}@admin.local`;
-      const { error } = await signIn(email, values.password);
+      const { error } = await signIn(values.email, values.password);
       
       if (error) {
-        toast.error("Hibás felhasználónév vagy jelszó");
+        toast.error("Hibás e-mail cím vagy jelszó");
       } else {
         toast.success("Sikeres bejelentkezés!");
         navigate("/admin");
@@ -77,24 +75,24 @@ export default function Auth() {
         <div className="bg-[#1e293b] border border-[#334155] rounded-lg p-4 sm:p-8 shadow-2xl">
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Admin Belépés</h1>
-            <p className="text-gray-400 text-sm sm:text-base">Jelentkezz be az admin felülethez</p>
+            <p className="text-gray-400 text-sm sm:text-base">Jelentkezz be e-mail címeddel</p>
           </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-300 text-sm">Felhasználónév</FormLabel>
+                    <FormLabel className="text-gray-300 text-sm">E-mail cím</FormLabel>
                     <FormControl>
                       <Input
-                        type="text"
-                        placeholder="DomonkosGym"
+                        type="email"
+                        placeholder="admin@thecoach.hu"
                         {...field}
                         className="bg-[#0f172a] border-[#334155] text-white placeholder:text-gray-500"
-                        autoComplete="username"
+                        autoComplete="email"
                       />
                     </FormControl>
                     <FormMessage />
