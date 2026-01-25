@@ -104,10 +104,227 @@ const TABLE_LABELS: Record<string, { label: string; category: string }> = {
   'lead_scores': { label: 'Lead pontszámok', category: 'analytics' },
 };
 
+// Database functions to export
+const DATABASE_FUNCTIONS = `
+-- ============================================
+-- ADATBÁZIS FÜGGVÉNYEK
+-- ============================================
+
+-- Frissítési időbélyeg trigger függvény
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$;
+
+-- Foglalási idősávok lekérdezése
+CREATE OR REPLACE FUNCTION public.get_booking_slots(p_service_id uuid DEFAULT NULL::uuid)
+RETURNS TABLE(service_id uuid, scheduled_date date, scheduled_time time without time zone, duration_minutes integer)
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    b.service_id,
+    b.scheduled_date,
+    b.scheduled_time,
+    b.duration_minutes
+  FROM public.bookings b
+  WHERE b.status IN ('pending', 'confirmed')
+    AND (p_service_id IS NULL OR b.service_id = p_service_id);
+$function$;
+
+-- Felhasználó ID lekérése email alapján
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(_email text)
+RETURNS uuid
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  select id from auth.users where lower(email) = lower(_email) limit 1;
+$function$;
+
+-- Szerepkör ellenőrzése
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$function$;
+
+-- Admin felhasználó beállítása
+CREATE OR REPLACE FUNCTION public.setup_admin_user()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'auth'
+AS $function$
+DECLARE
+  admin_user_id uuid;
+BEGIN
+  SELECT id INTO admin_user_id
+  FROM auth.users
+  WHERE email = 'domonkosgym@admin.local';
+  
+  IF admin_user_id IS NOT NULL THEN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (admin_user_id, 'admin'::app_role)
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+END;
+$function$;
+
+-- Admin felhasználó beállítása email alapján
+CREATE OR REPLACE FUNCTION public.setup_admin_user_by_email(_email text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+declare
+  admin_user_id uuid;
+begin
+  select id into admin_user_id from auth.users where lower(email) = lower(_email);
+  if admin_user_id is not null then
+    insert into public.user_roles (user_id, role)
+    values (admin_user_id, 'admin'::app_role)
+    on conflict (user_id, role) do nothing;
+  end if;
+end;
+$function$;
+
+-- Séma info függvények (csak ha szükséges az admin felületen)
+CREATE OR REPLACE FUNCTION public.get_all_table_info()
+RETURNS TABLE(table_name text, column_name text, data_type text, udt_name text, is_nullable text, column_default text, ordinal_position integer)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    c.table_name::text,
+    c.column_name::text,
+    c.data_type::text,
+    c.udt_name::text,
+    c.is_nullable::text,
+    c.column_default::text,
+    c.ordinal_position::integer
+  FROM information_schema.columns c
+  JOIN information_schema.tables t ON c.table_name = t.table_name AND c.table_schema = t.table_schema
+  WHERE c.table_schema = 'public' 
+    AND t.table_type = 'BASE TABLE'
+  ORDER BY c.table_name, c.ordinal_position;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_all_enum_types()
+RETURNS TABLE(enum_name text, enum_values text[])
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    t.typname::text as enum_name,
+    array_agg(e.enumlabel ORDER BY e.enumsortorder)::text[] as enum_values
+  FROM pg_type t
+  JOIN pg_enum e ON t.oid = e.enumtypid
+  JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+  WHERE n.nspname = 'public'
+  GROUP BY t.typname;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_rls_policies()
+RETURNS TABLE(table_name text, policy_name text, policy_command text, policy_qual text, policy_with_check text)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    schemaname || '.' || tablename as table_name,
+    policyname as policy_name,
+    cmd::text as policy_command,
+    qual::text as policy_qual,
+    with_check::text as policy_with_check
+  FROM pg_policies
+  WHERE schemaname = 'public';
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_foreign_keys()
+RETURNS TABLE(table_name text, column_name text, foreign_table text, foreign_column text, constraint_name text)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    tc.table_name::text,
+    kcu.column_name::text,
+    ccu.table_name::text as foreign_table,
+    ccu.column_name::text as foreign_column,
+    tc.constraint_name::text
+  FROM information_schema.table_constraints tc
+  JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name 
+    AND tc.table_schema = kcu.table_schema
+  JOIN information_schema.constraint_column_usage ccu 
+    ON ccu.constraint_name = tc.constraint_name 
+    AND ccu.table_schema = tc.table_schema
+  WHERE tc.constraint_type = 'FOREIGN KEY' 
+    AND tc.table_schema = 'public';
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_primary_keys()
+RETURNS TABLE(table_name text, column_name text)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    tc.table_name::text,
+    kcu.column_name::text
+  FROM information_schema.table_constraints tc
+  JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name 
+    AND tc.table_schema = kcu.table_schema
+  WHERE tc.constraint_type = 'PRIMARY KEY' 
+    AND tc.table_schema = 'public'
+  ORDER BY tc.table_name, kcu.ordinal_position;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.get_unique_constraints()
+RETURNS TABLE(table_name text, constraint_name text, column_names text[])
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+  SELECT 
+    tc.table_name::text,
+    tc.constraint_name::text,
+    array_agg(kcu.column_name ORDER BY kcu.ordinal_position)::text[] as column_names
+  FROM information_schema.table_constraints tc
+  JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name 
+    AND tc.table_schema = kcu.table_schema
+  WHERE tc.constraint_type = 'UNIQUE' 
+    AND tc.table_schema = 'public'
+  GROUP BY tc.table_name, tc.constraint_name;
+$function$;
+
+`;
+
 export default function DatabaseExport() {
   const [schemaInfo, setSchemaInfo] = useState<SchemaInfo | null>(null);
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [allTables, setAllTables] = useState<string[]>([]);
+  const [orderedTables, setOrderedTables] = useState<string[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [exportingSchema, setExportingSchema] = useState(false);
   const [exportingData, setExportingData] = useState(false);
@@ -116,6 +333,63 @@ export default function DatabaseExport() {
   useEffect(() => {
     fetchSchemaInfo();
   }, []);
+
+  // Topological sort for table dependencies
+  const topologicalSort = (tables: string[], foreignKeys: ForeignKey[]): string[] => {
+    const graph: Record<string, string[]> = {};
+    const inDegree: Record<string, number> = {};
+    
+    // Initialize
+    for (const table of tables) {
+      graph[table] = [];
+      inDegree[table] = 0;
+    }
+    
+    // Build dependency graph
+    for (const fk of foreignKeys) {
+      if (tables.includes(fk.table_name) && tables.includes(fk.foreign_table)) {
+        // table_name depends on foreign_table
+        if (fk.table_name !== fk.foreign_table) {
+          graph[fk.foreign_table].push(fk.table_name);
+          inDegree[fk.table_name]++;
+        }
+      }
+    }
+    
+    // Kahn's algorithm
+    const queue: string[] = [];
+    const result: string[] = [];
+    
+    // Start with tables that have no dependencies
+    for (const table of tables) {
+      if (inDegree[table] === 0) {
+        queue.push(table);
+      }
+    }
+    
+    while (queue.length > 0) {
+      // Sort queue alphabetically for consistent ordering
+      queue.sort();
+      const current = queue.shift()!;
+      result.push(current);
+      
+      for (const dependent of graph[current]) {
+        inDegree[dependent]--;
+        if (inDegree[dependent] === 0) {
+          queue.push(dependent);
+        }
+      }
+    }
+    
+    // If there are remaining tables (circular dependencies), add them at the end
+    for (const table of tables) {
+      if (!result.includes(table)) {
+        result.push(table);
+      }
+    }
+    
+    return result;
+  };
 
   const fetchSchemaInfo = async () => {
     setLoadingSchema(true);
@@ -133,9 +407,14 @@ export default function DatabaseExport() {
       // Extract unique table names
       const tableNames = [...new Set(data.tables.map((t: TableColumn) => t.table_name))].sort() as string[];
       setAllTables(tableNames);
-      setSelectedTables(tableNames);
       
-      toast.success(`${tableNames.length} tábla betöltve az adatbázisból`);
+      // Sort tables by dependencies
+      const sorted = topologicalSort(tableNames, data.foreignKeys || []);
+      setOrderedTables(sorted);
+      setSelectedTables(sorted);
+      
+      console.log('Table order for export:', sorted);
+      toast.success(`${tableNames.length} tábla betöltve (függőség szerint rendezve)`);
     } catch (err) {
       console.error('Error:', err);
       toast.error('Nem sikerült a séma lekérdezése');
@@ -152,7 +431,7 @@ export default function DatabaseExport() {
     );
   };
 
-  const selectAll = () => setSelectedTables([...allTables]);
+  const selectAll = () => setSelectedTables([...orderedTables]);
   const selectNone = () => setSelectedTables([]);
 
   const downloadFile = (content: string, filename: string) => {
@@ -216,6 +495,11 @@ export default function DatabaseExport() {
     return allRows;
   };
 
+  // Get tables in correct order for data export (respecting foreign keys)
+  const getOrderedSelectedTables = (): string[] => {
+    return orderedTables.filter(t => selectedTables.includes(t));
+  };
+
   const exportData = async () => {
     if (selectedTables.length === 0) {
       toast.error('Válassz ki legalább egy táblát');
@@ -223,19 +507,27 @@ export default function DatabaseExport() {
     }
 
     setExportingData(true);
-    setExportProgress(selectedTables.map(t => ({ tableName: t, rowCount: 0, status: 'pending' })));
+    
+    // Use dependency-ordered tables
+    const tablesToExport = getOrderedSelectedTables();
+    
+    setExportProgress(tablesToExport.map(t => ({ tableName: t, rowCount: 0, status: 'pending' })));
     
     let sql = `-- ============================================\n`;
-    sql += `-- TELJES ADATBÁZIS EXPORT\n`;
+    sql += `-- TELJES ADATBÁZIS ADAT EXPORT\n`;
     sql += `-- Dátum: ${new Date().toISOString()}\n`;
-    sql += `-- Táblák száma: ${selectedTables.length}\n`;
+    sql += `-- Táblák száma: ${tablesToExport.length}\n`;
+    sql += `-- FONTOS: A táblák függőségi sorrendben vannak!\n`;
     sql += `-- ============================================\n\n`;
+
+    sql += `-- Ideiglenesen kikapcsoljuk a foreign key ellenőrzést\n`;
+    sql += `SET session_replication_role = 'replica';\n\n`;
 
     let totalRows = 0;
 
     try {
-      for (let i = 0; i < selectedTables.length; i++) {
-        const tableName = selectedTables[i];
+      for (let i = 0; i < tablesToExport.length; i++) {
+        const tableName = tablesToExport[i];
         
         setExportProgress(prev => prev.map(p => 
           p.tableName === tableName ? { ...p, status: 'loading' } : p
@@ -246,11 +538,11 @@ export default function DatabaseExport() {
 
           if (data && data.length > 0) {
             sql += `-- ============================================\n`;
-            sql += `-- TÁBLA: ${tableName}\n`;
+            sql += `-- TÁBLA: ${tableName} (${i + 1}/${tablesToExport.length})\n`;
             sql += `-- SOROK SZÁMA: ${data.length}\n`;
             sql += `-- ============================================\n\n`;
             
-            sql += `-- Ideiglenes trigger letiltás\n`;
+            sql += `-- Trigger letiltás\n`;
             sql += `ALTER TABLE public.${tableName} DISABLE TRIGGER ALL;\n\n`;
             
             for (const row of data) {
@@ -282,13 +574,16 @@ export default function DatabaseExport() {
         }
       }
 
-      sql += `\n-- ============================================\n`;
+      sql += `\n-- Foreign key ellenőrzés visszakapcsolása\n`;
+      sql += `SET session_replication_role = 'origin';\n\n`;
+
+      sql += `-- ============================================\n`;
       sql += `-- EXPORT BEFEJEZVE\n`;
       sql += `-- Összesen: ${totalRows} sor\n`;
       sql += `-- ============================================\n`;
 
       downloadFile(sql, `teljes_adatbazis_export_${new Date().toISOString().slice(0, 10)}.sql`);
-      toast.success(`Exportálva: ${totalRows} sor, ${selectedTables.length} tábla`);
+      toast.success(`Exportálva: ${totalRows} sor, ${tablesToExport.length} tábla`);
     } catch (error) {
       console.error('Export hiba:', error);
       toast.error('Hiba az exportálás során');
@@ -345,21 +640,32 @@ export default function DatabaseExport() {
     let sql = `-- ============================================\n`;
     sql += `-- TELJES ADATBÁZIS SÉMA EXPORT\n`;
     sql += `-- Dátum: ${new Date().toISOString()}\n`;
-    sql += `-- Táblák száma: ${allTables.length}\n`;
+    sql += `-- Táblák száma: ${orderedTables.length}\n`;
+    sql += `-- FONTOS: A táblák függőségi sorrendben vannak!\n`;
     sql += `-- ============================================\n\n`;
+
+    sql += `-- Szükséges extension-ök\n`;
+    sql += `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";\n`;
+    sql += `CREATE EXTENSION IF NOT EXISTS "pgcrypto";\n\n`;
     
     // Export ENUMs first
     if (schemaInfo.enums && schemaInfo.enums.length > 0) {
       sql += `-- ============================================\n`;
-      sql += `-- ENUM TÍPUSOK\n`;
+      sql += `-- ENUM TÍPUSOK (ELSŐKÉNT KELL LÉTREHOZNI)\n`;
       sql += `-- ============================================\n\n`;
       
       for (const enumType of schemaInfo.enums) {
         const values = enumType.enum_values.map(v => `'${v}'`).join(', ');
-        sql += `CREATE TYPE public.${enumType.enum_name} AS ENUM (${values});\n`;
+        sql += `DO $$ BEGIN\n`;
+        sql += `  CREATE TYPE public.${enumType.enum_name} AS ENUM (${values});\n`;
+        sql += `EXCEPTION WHEN duplicate_object THEN NULL;\n`;
+        sql += `END $$;\n\n`;
       }
-      sql += `\n`;
     }
+
+    // Add database functions
+    sql += DATABASE_FUNCTIONS;
+    sql += `\n`;
 
     // Group columns by table
     const tableColumns: Record<string, TableColumn[]> = {};
@@ -398,16 +704,17 @@ export default function DatabaseExport() {
     }
 
     sql += `-- ============================================\n`;
-    sql += `-- TÁBLA DEFINÍCIÓK (${allTables.length} tábla)\n`;
+    sql += `-- TÁBLA DEFINÍCIÓK (${orderedTables.length} tábla, FÜGGŐSÉGI SORRENDBEN)\n`;
     sql += `-- ============================================\n\n`;
 
-    // Export all tables
-    for (const tableName of allTables) {
+    // Export tables in dependency order (WITHOUT foreign keys first)
+    for (let i = 0; i < orderedTables.length; i++) {
+      const tableName = orderedTables[i];
       const columns = tableColumns[tableName];
       if (!columns || columns.length === 0) continue;
 
       const tableLabel = TABLE_LABELS[tableName]?.label || tableName;
-      sql += `-- ${tableLabel.toUpperCase()} (${tableName})\n`;
+      sql += `-- ${i + 1}. ${tableLabel.toUpperCase()} (${tableName})\n`;
       sql += `CREATE TABLE IF NOT EXISTS public.${tableName} (\n`;
       
       const columnDefs: string[] = [];
@@ -436,16 +743,36 @@ export default function DatabaseExport() {
         columnDefs.push(`  PRIMARY KEY (${pks.join(', ')})`);
       }
       
-      // Add foreign key constraints
+      sql += columnDefs.join(',\n');
+      sql += `\n);\n\n`;
+    }
+
+    // Now add foreign key constraints separately (after all tables exist)
+    sql += `-- ============================================\n`;
+    sql += `-- FOREIGN KEY CONSTRAINTS (TÁBLÁK UTÁN)\n`;
+    sql += `-- ============================================\n\n`;
+
+    for (const tableName of orderedTables) {
       const fks = foreignKeysByTable[tableName];
       if (fks && fks.length > 0) {
         for (const fk of fks) {
-          columnDefs.push(`  CONSTRAINT ${fk.constraint_name} FOREIGN KEY (${fk.column_name}) REFERENCES public.${fk.foreign_table}(${fk.foreign_column})`);
+          sql += `ALTER TABLE public.${tableName} ADD CONSTRAINT ${fk.constraint_name} `;
+          sql += `FOREIGN KEY (${fk.column_name}) REFERENCES public.${fk.foreign_table}(${fk.foreign_column});\n`;
         }
       }
+    }
+    sql += `\n`;
+
+    // Export unique constraints
+    if (schemaInfo.uniqueConstraints && schemaInfo.uniqueConstraints.length > 0) {
+      sql += `-- ============================================\n`;
+      sql += `-- UNIQUE CONSTRAINTS\n`;
+      sql += `-- ============================================\n\n`;
       
-      sql += columnDefs.join(',\n');
-      sql += `\n);\n\n`;
+      for (const uc of schemaInfo.uniqueConstraints) {
+        sql += `ALTER TABLE public.${uc.table_name} ADD CONSTRAINT ${uc.constraint_name} UNIQUE (${uc.column_names.join(', ')});\n`;
+      }
+      sql += `\n`;
     }
 
     // Export RLS enable statements
@@ -453,7 +780,7 @@ export default function DatabaseExport() {
     sql += `-- ROW LEVEL SECURITY ENGEDÉLYEZÉS\n`;
     sql += `-- ============================================\n\n`;
 
-    for (const tableName of allTables) {
+    for (const tableName of orderedTables) {
       sql += `ALTER TABLE public.${tableName} ENABLE ROW LEVEL SECURITY;\n`;
     }
     sql += `\n`;
@@ -465,9 +792,12 @@ export default function DatabaseExport() {
       sql += `-- ============================================\n\n`;
       
       for (const policy of schemaInfo.policies) {
+        // Extract just the table name from "public.tablename"
+        const tableName = policy.table_name.replace('public.', '');
+        
         sql += `-- Policy: ${policy.policy_name}\n`;
         sql += `CREATE POLICY "${policy.policy_name}"\n`;
-        sql += `  ON ${policy.table_name}\n`;
+        sql += `  ON public.${tableName}\n`;
         sql += `  FOR ${policy.policy_command}\n`;
         
         if (policy.policy_qual) {
@@ -482,27 +812,16 @@ export default function DatabaseExport() {
       }
     }
 
-    // Export unique constraints
-    if (schemaInfo.uniqueConstraints && schemaInfo.uniqueConstraints.length > 0) {
-      sql += `-- ============================================\n`;
-      sql += `-- UNIQUE CONSTRAINTS\n`;
-      sql += `-- ============================================\n\n`;
-      
-      for (const uc of schemaInfo.uniqueConstraints) {
-        sql += `ALTER TABLE public.${uc.table_name} ADD CONSTRAINT ${uc.constraint_name} UNIQUE (${uc.column_names.join(', ')});\n`;
-      }
-      sql += `\n`;
-    }
-
     sql += `-- ============================================\n`;
     sql += `-- SÉMA EXPORT BEFEJEZVE\n`;
-    sql += `-- Táblák: ${allTables.length}\n`;
+    sql += `-- Táblák: ${orderedTables.length}\n`;
     sql += `-- Enum típusok: ${schemaInfo.enums?.length || 0}\n`;
     sql += `-- RLS szabályok: ${schemaInfo.policies?.length || 0}\n`;
+    sql += `-- Függvények: 10\n`;
     sql += `-- ============================================\n`;
 
     downloadFile(sql, `adatbazis_sema_${new Date().toISOString().slice(0, 10)}.sql`);
-    toast.success(`Séma exportálva: ${allTables.length} tábla, ${schemaInfo.enums?.length || 0} enum, ${schemaInfo.policies?.length || 0} RLS policy`);
+    toast.success(`Séma exportálva: ${orderedTables.length} tábla, ${schemaInfo.enums?.length || 0} enum, ${schemaInfo.policies?.length || 0} RLS policy, 10 függvény`);
     setExportingSchema(false);
   };
 
@@ -532,7 +851,7 @@ export default function DatabaseExport() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Adatbázis Exportálás</h1>
-          <p className="text-gray-400 mt-1">Teljes adatbázis export - minden tábla, minden adat</p>
+          <p className="text-gray-400 mt-1">Teljes adatbázis export - függőségi sorrendben</p>
         </div>
         <Button
           onClick={fetchSchemaInfo}
@@ -556,19 +875,23 @@ export default function DatabaseExport() {
       {schemaInfo && (
         <Alert className="bg-green-900/20 border-green-700">
           <CheckCircle className="h-4 w-4 text-green-400" />
-          <AlertTitle>Séma betöltve</AlertTitle>
+          <AlertTitle>Séma betöltve - Függőségi sorrendben</AlertTitle>
           <AlertDescription>
-            {allTables.length} tábla, {schemaInfo.enums?.length || 0} enum típus, {schemaInfo.policies?.length || 0} RLS policy
+            {allTables.length} tábla, {schemaInfo.enums?.length || 0} enum típus, {schemaInfo.policies?.length || 0} RLS policy, {schemaInfo.foreignKeys?.length || 0} foreign key
           </AlertDescription>
         </Alert>
       )}
 
       <Alert className="bg-blue-900/20 border-blue-700">
         <Info className="h-4 w-4" />
-        <AlertTitle>Független hosztoláshoz</AlertTitle>
+        <AlertTitle>Független hosztoláshoz - Javított verzió</AlertTitle>
         <AlertDescription>
-          A séma export tartalmazza az összes CREATE TABLE, ENUM típust és RLS policy-t.
-          Az adat export az INSERT utasításokat tartalmazza az összes kijelölt táblából.
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li>A táblák <strong>topológiai sorrendben</strong> kerülnek exportálásra (függőségek figyelembevételével)</li>
+            <li>Enum típusok és függvények <strong>elsőként</strong> jönnek létre</li>
+            <li>Foreign key constraint-ek <strong>külön</strong>, a táblák létrehozása után</li>
+            <li>Data export: session_replication_role a FK ellenőrzés kikapcsolásához</li>
+          </ul>
         </AlertDescription>
       </Alert>
 
@@ -581,7 +904,7 @@ export default function DatabaseExport() {
               Séma Letöltése
             </CardTitle>
             <CardDescription>
-              Teljes adatbázis struktúra: {allTables.length} tábla, enum típusok, RLS szabályok
+              Teljes adatbázis struktúra: {allTables.length} tábla, enum típusok, függvények, RLS szabályok
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -608,7 +931,7 @@ export default function DatabaseExport() {
               Teljes Adatok Exportálása
             </CardTitle>
             <CardDescription>
-              {selectedTables.length} / {allTables.length} tábla kijelölve
+              {selectedTables.length} / {allTables.length} tábla kijelölve (függőségi sorrendben)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -636,7 +959,7 @@ export default function DatabaseExport() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {exportProgress.map(p => (
+              {exportProgress.map((p, idx) => (
                 <div 
                   key={p.tableName}
                   className={`p-2 rounded text-sm flex items-center gap-2 ${
@@ -646,6 +969,7 @@ export default function DatabaseExport() {
                     'bg-gray-800 text-gray-400'
                   }`}
                 >
+                  <span className="text-xs text-gray-500">{idx + 1}.</span>
                   {p.status === 'loading' && <Loader2 className="h-3 w-3 animate-spin" />}
                   {p.status === 'done' && <CheckCircle className="h-3 w-3" />}
                   <span className="truncate">{p.tableName}</span>
@@ -696,6 +1020,7 @@ export default function DatabaseExport() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                       {tables.map(tableName => {
                         const label = TABLE_LABELS[tableName]?.label || tableName;
+                        const orderIndex = orderedTables.indexOf(tableName) + 1;
                         return (
                           <div 
                             key={tableName}
@@ -708,9 +1033,10 @@ export default function DatabaseExport() {
                             />
                             <Label 
                               htmlFor={tableName} 
-                              className="text-sm cursor-pointer text-gray-300 truncate"
-                              title={`${label} (${tableName})`}
+                              className="text-sm cursor-pointer text-gray-300 truncate flex-1"
+                              title={`${label} (${tableName}) - Sorrend: ${orderIndex}`}
                             >
+                              <span className="text-xs text-gray-500 mr-1">{orderIndex}.</span>
                               {label}
                             </Label>
                           </div>
